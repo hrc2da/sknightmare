@@ -1,3 +1,5 @@
 simpy==3.0.1
 RandomWords==0.2.1
 arrow==0.13.1
+numpy==1.14.6
+scipy==1.1.0
