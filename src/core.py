@@ -380,3 +380,4 @@ if __name__=="__main__":
             "attributes":{"x":4.1,"y":5.7,"radius":7,"seats":5}}]
     r = Restauraunt("Sophie's Kitchen", equipment, tables)
     r.simulate(days=1)
+    print("All Finished!!!!!!")
