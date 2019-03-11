@@ -7,7 +7,25 @@ from random_words import RandomWords
 import arrow # for nicer datetimes
 import math
 
-class Restauraunt:
+class Ledger:
+  def __init__(self,verbose=True,save_messages=True):
+    self.messages = []
+    self.verbose = verbose
+    self.save_messages = save_messages
+    self.num_days = 0
+    self.days = []
+  def print(self,message):
+    if self.verbose:
+      print(message)
+    if self.save_messages:
+      self.messages.append(message)
+  def read_messages(self):
+    for m in self.messages:
+      print(m)
+  def record_day(self):
+    self.num_days += 1
+    
+class Restaurant:
   '''
     equipment is a list of Appliances
     tables is a list of Tables
@@ -15,39 +33,42 @@ class Restauraunt:
   '''
   def __init__(self, name, equipment, tables, start_time='2019-01-01T00:00:00'):
     self.env = simpy.Environment()
+    self.ledger = Ledger(verbose=False,save_messages=True)
+    self.env.ledger = self.ledger
     self.name = name
+    self.menu_items = [
+      {
+          "name": "Simple Pizza",
+          "price": 5.0,
+          "requirements": ["pizza"],
+          "difficulty": 0.1
+      },
+      {
+          "name": "Intermediate Pizza",
+          "price": 10.0,
+          "requirements": ["pizza"],
+          "difficulty": 0.5
+      },
+      {
+          "name": "Excessive Pizza",
+          "price": 50.0,
+          "requirements": ["pizza"],
+          "difficulty": 0.9
+      }
+    ]
     self.setup_neighborhood()
     self.setup_kitchen(equipment)
     self.setup_seating(tables)
     self.name_generator = RandomWords()
     self.satisfaction_scores = []
-    self.restauraunt_rating = 1 #score between 0 and 1
+    self.restaurant_rating = 1 #score between 0 and 1
     self.checks = []
     self.waiting_list_max = 20
     self.start_time = arrow.get(start_time) # this doesn't really matter unless we start considering seasons etc.
     self.monkey_patch_env()
     self.generated_parties = []
     self.entered_parties = []
-    self.menu_items = [
-        {
-            "name": "Simple Pizza",
-            "price": 5.0,
-            "requirements": ["pizza"],
-            "difficulty": 0.1
-        },
-        {
-            "name": "Intermediate Pizza",
-            "price": 10.0,
-            "requirements": ["pizza"],
-            "difficulty": 0.5
-        },
-        {
-            "name": "Excessive Pizza",
-            "price": 50.0,
-            "requirements": ["pizza"],
-            "difficulty": 0.9
-        }
-    ]
+    self.seated_parties = []
     #let's place an order for fun
 #     orders = [Order(env,"Dusfrene Party of Two",None,None),
 #               Order(env,"Bush Party of Three",None,None)]
@@ -58,6 +79,8 @@ class Restauraunt:
   def setup_kitchen(self, equipment):
     self.kitchen = simpy.FilterStore(self.env, capacity=len(equipment))
     self.kitchen.items = [Appliance(self.env,e["name"],e["attributes"]) for e in equipment]
+    self.menu_items = [m for m in self.menu_items if any(all(req in appliance.capabilities for req in m["requirements"]) for appliance in self.kitchen.items)]
+    self.env.ledger.print("Menu: {}".format(self.menu_items))
     
   def setup_seating(self, tables):
     self.seating = simpy.FilterStore(self.env, capacity=len(tables))
@@ -99,6 +122,7 @@ class Restauraunt:
     if seated == False:
       check,satisfaction = yield self.env.process(party.leave(self.seating))
     else:
+      self.seated_parties.append(party)
       noise_process = self.env.process(party.check_noise(self.tables))  
       order = Order(self.env,self.rw(),party,party.table)
       yield self.env.process(order.place_order(self.kitchen,self.menu_items))  
@@ -161,7 +185,7 @@ class Restauraunt:
     '''
       Randomly generate a party
     '''
-    print("Time is: {} from {}".format(self.current_time().format("HH:mm:ss"),self.env.now))
+    self.env.ledger.print("Time is: {} from {}".format(self.current_time().format("HH:mm:ss"),self.env.now))
     
     num_entered = 0
     parties = np.clip(np.random.multivariate_normal(self.demographic_means,self.demographic_cov,n),0.01,1)
@@ -182,12 +206,12 @@ class Restauraunt:
         self.env.process(self.handle_party(p))
       else:
         continue
-    print("Total groups generated: {}, total entered: {}".format(num_generated, num_entered))   
+    self.env.ledger.print("Total groups generated: {}, total entered: {}".format(num_generated, num_entered))   
   
   def decide_entry(self,party_attributes):
     if(party_attributes["size"] > self.max_table_size):
       return False
-    elif party_attributes["taste"] > self.restauraunt_rating:
+    elif party_attributes["taste"] > self.restaurant_rating:
       return False
     elif np.random.uniform(0,1) > 0.05:
       return False
@@ -201,13 +225,15 @@ class Restauraunt:
       today = self.env.m_current_time().format("dddd")
       if today != day_of_week:
         day_of_week = today
+        self.ledger.record_day()
+        self.calc_stats()
         #self.env.process(self.calc_stats())
         #self.summarize()
-        #self.restauraunt_rating = min(0,2)
-        #self.restauraunt_rating = np.mean(self.satisfaction_scores)
+        #self.restaurant_rating = min(0,2)
+        #self.restaurant_rating = np.mean(self.satisfaction_scores)
         #day = self.env.m_current_time().format("ddd MMM D")
-        #print("Summary for {}: satisfaction: {}".format(day,self.restauraunt_rating))
-      # generate 0+ parties based on the time of day & popularity of the restauraunt
+        #print("Summary for {}: satisfaction: {}".format(day,self.restaurant_rating))
+      # generate 0+ parties based on the time of day & popularity of the restaurant
       self.generate_parties(self.sample_num_parties())     
         
         
@@ -224,13 +250,29 @@ class Restauraunt:
     pass
   def calc_stats(self):
     if len(self.satisfaction_scores) > 0:
-      self.restauraunt_rating = np.mean(self.satisfaction_scores)
+      self.restaurant_rating = np.mean(self.satisfaction_scores)
 
  
   def summarize(self):
     day = self.env.m_current_time().format("ddd MMM D")
-    print("Summary for {}: satisfaction: {}".format(day,self.restauraunt_rating))
+    self.env.ledger.print("Summary for {}: satisfaction: {}".format(day,self.restaurant_rating))
 
+  def final_report(self):
+    print("*"*80)
+    print("Simulation run for {} days.".format(self.ledger.num_days))
+    print("*"*80)
+    print("Parties entered: {}\nParties seated: {}\nParties paid: {}".format(len(self.entered_parties),len(self.seated_parties),len([c for c in self.checks if c > 0])))
+    revenue = np.sum(self.checks)
+    print("Total Revenue: {}".format(revenue))
+    leftovers = len(self.entered_parties)-len(self.checks) #if we cut off the last day while people were dining
+    if leftovers > 0:
+      truncated_entered_parties = self.entered_parties[:-leftovers]
+    else:
+      truncated_entered_parties = self.entered_parties
+    num_served = np.sum([p.size for i,p in enumerate(truncated_entered_parties) if self.checks[i]>0])
+    print("Total individual customers served: {}\nAverage price per entree: {}".format(num_served,revenue/num_served))
+    print("Avg Satisfaction Score: {}\nStd Satisfaction Score: {}".format(np.mean(self.satisfaction_scores), np.std(self.satisfaction_scores)))
+    print("Final Restaurant Rating: {}".format(self.restaurant_rating))
 
 class Order:
   def __init__(self, env, name, party, table):
@@ -240,19 +282,25 @@ class Order:
     self.table = table
     self.status = "placed"
     self.equipment_type = "oven"
+    self.bill = 0
+    self.satisfactions = []
+    self.cook_times = []
   def place_order(self, kitchen, menu):
-    print("{}: Placing order of size {} for {}".format(self.env.m_current_time().format("HH:mm:ss"),self.party.size,self.party.name))
+    self.env.ledger.print("{}: Placing order of size {} for {}".format(self.env.m_current_time().format("HH:mm:ss"),self.party.size,self.party.name))
     for diner in range(self.party.size):
         # choose a menu item
         meal_order = self.choose_menu_item(menu)
+        self.bill += meal_order["price"]
         # submit the order
         appliance = yield kitchen.get(lambda appliance: all(req in appliance.capabilities for req in meal_order["requirements"]))
         self.status = "cooking"
         yield self.env.process(appliance.cook(self,meal_order))
         #yield self.env.timeout(4)
-        print("Order {}/{} of {} for {} cooked in time {:.2f} with quality {:.2f}.".format(diner+1, self.party.size, meal_order["name"], self.party.name, self.cook_time, self.quality))
-        self.status = "serving"
+        self.env.ledger.print("Order {}/{} of {} for {} cooked in time {:.2f} with quality {:.2f}.".format(diner+1, self.party.size, meal_order["name"], self.party.name, self.cook_time, self.quality))
+        self.satisfactions.append(self.quality)
+        self.cook_times.append(self.cook_time)
         yield kitchen.put(appliance)
+  
   def choose_menu_item(self, menu):
       budget = self.party.affluence * self.party.max_budget
       monetary_taste = self.party.taste * self.party.max_budget
@@ -265,7 +313,7 @@ class Appliance:
     self.name = name
     self.parse_attributes(attributes)
   def cook(self,order,item):
-    print("{} is cooking an order of {} for {}".format(self.name,item["name"],order.party.name))
+    self.env.ledger.print("{} is cooking an order of {} for {}".format(self.name,item["name"],order.party.name))
     order.status = "cooking NOW"
     difficulty_penalty = 1
     difficulty_diff = item["difficulty"] - self.difficulty_rating
@@ -312,7 +360,7 @@ class Party:
     self.table = None
     self.perceived_noisiness = 0.0
     self.satisfaction = 0
-    print("Welcoming Party {} of size {}.".format(self.name,self.size))
+    self.env.ledger.print("Welcoming Party {} of size {}.".format(self.name,self.size))
     
   def parse_attributes(self, attributes):
     #  ["size","affluence","taste","noisinesself.table.party = selfss","patience","noise_tolerance","space_tolerance"]
@@ -345,22 +393,23 @@ class Party:
       if(req in res):
         self.table = res[req]
         self.table.party = self
-        print("Party {} is seated at {} after waiting for {}".format(self.name,self.table.name,self.seating_wait))
+        self.env.ledger.print("Party {} is seated at {} after waiting for {}".format(self.name,self.table.name,self.seating_wait))
         return True
       else:
-        print("Party {} with patience rating {} is tired of waiting for a table after waiting for {}.".format(self.name,self.patience,self.seating_wait))
+        self.env.ledger.print("Party {} with patience rating {} is tired of waiting for a table after waiting for {}.".format(self.name,self.patience,self.seating_wait))
         return False
   def eat(self,order):
-    print("Party {} is eating".format(self.name))
-    self.satisfaction = order.quality
+    self.env.ledger.print("Party {} is eating".format(self.name))
+    self.satisfaction = np.mean(order.satisfactions) #should consider wait time here as well
+    self.bill = order.bill
     yield self.env.timeout(10*60*self.size)
   
   def leave(self, seating):
     check = 0
-    print("Party {} has left".format(self.name))
+    self.env.ledger.print("Party {} has left".format(self.name))
     if self.table:
       self.table.party = None
-      subtotal = self.size*10
+      subtotal = self.bill
       tip = self.satisfaction*0.3*subtotal
       check = subtotal + tip
       yield seating.put(self.table)
@@ -368,7 +417,7 @@ class Party:
 
   def check_noise(self, tables):
     while True:
-      yield self.env.timeout(1)
+      yield self.env.timeout(60)
       noise = 0.0
       for t in tables:
         if t.party != self and t.party != None:
@@ -382,17 +431,20 @@ if __name__=="__main__":
               "attributes":{"capabilities":["oven","pizza","steak"],
                             "cook_time_mean":10, "cook_time_std":1, 
                             "quality_mean":0.5, "quality_std":0.4,
-                            "difficulty_rating":0.2}},
+                            "difficulty_rating":0.2,
+                            "daily_upkeep":5, "reliability":0.2}},
             
                 {"name":"Awesome Pizza Oven", 
                 "attributes":{"capabilities":["oven","pizza","steak"],
                               "cook_time_mean":4, "cook_time_std":0.1, 
                               "quality_mean":0.7, "quality_std":0.1,
-                              "difficulty_rating":0.8}}]
+                              "difficulty_rating":0.8,
+                              "daily_upkeep":10, "reliability":0.9}}]
     tables = [{"name":"Table 1", 
             "attributes":{"x":2.1,"y":3.7,"radius":4,"seats":2}},
             {"name":"Table 2", 
             "attributes":{"x":4.1,"y":5.7,"radius":7,"seats":5}}]
-    r = Restauraunt("Sophie's Kitchen", equipment, tables)
-    r.simulate(days=1)
-    print("All done")
+    r = Restaurant("Sophie's Kitchen", equipment, tables)
+    r.simulate(days=7)
+    #r.ledger.read_messages()
+    r.final_report()
