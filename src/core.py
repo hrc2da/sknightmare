@@ -35,27 +35,32 @@ class Restaurant:
     self.env = simpy.Environment()
     self.ledger = Ledger(verbose=False,save_messages=True)
     self.env.ledger = self.ledger
+    self.env.day = 0
     self.name = name
     self.menu_items = [
       {
           "name": "Simple Pizza",
           "price": 5.0,
           "requirements": ["pizza"],
-          "difficulty": 0.1
+          "difficulty": 0.1,
+          "cost": 4.0
       },
       {
           "name": "Intermediate Pizza",
           "price": 10.0,
           "requirements": ["pizza"],
-          "difficulty": 0.5
+          "difficulty": 0.5,
+          "cost": 5.0
       },
       {
           "name": "Excessive Pizza",
           "price": 50.0,
           "requirements": ["pizza"],
-          "difficulty": 0.9
+          "difficulty": 0.9,
+          "cost": 15
       }
     ]
+
     self.setup_neighborhood()
     self.setup_kitchen(equipment)
     self.setup_seating(tables)
@@ -69,19 +74,22 @@ class Restaurant:
     self.generated_parties = []
     self.entered_parties = []
     self.seated_parties = []
+    self.order_log = []
+    self.daily_costs = []
+    self.closing_order = 0
     #let's place an order for fun
 #     orders = [Order(env,"Dusfrene Party of Two",None,None),
 #               Order(env,"Bush Party of Three",None,None)]
 #     print("Serving tables...")
-#     placed_orders = [env.process(o.place_order(self.kitchen)) for o in orders]
+#     placed_orders = [env.process(o.placewhere o.day == self.env.today_order(self.kitchen)) for o in orders]
     self.env.process(self.simulation_loop())
-    
+
   def setup_kitchen(self, equipment):
     self.kitchen = simpy.FilterStore(self.env, capacity=len(equipment))
     self.kitchen.items = [Appliance(self.env,e["name"],e["attributes"]) for e in equipment]
     self.menu_items = [m for m in self.menu_items if any(all(req in appliance.capabilities for req in m["requirements"]) for appliance in self.kitchen.items)]
     self.env.ledger.print("Menu: {}".format(self.menu_items))
-    
+    self.appliances = [a for a in self.kitchen.items]
   def setup_seating(self, tables):
     self.seating = simpy.FilterStore(self.env, capacity=len(tables))
     self.seating.items = [Table(self.env,t["name"],t["attributes"]) for t in tables]
@@ -125,7 +133,8 @@ class Restaurant:
       self.seated_parties.append(party)
       noise_process = self.env.process(party.check_noise(self.tables))  
       order = Order(self.env,self.rw(),party,party.table)
-      yield self.env.process(order.place_order(self.kitchen,self.menu_items))  
+      yield self.env.process(order.place_order(self.kitchen,self.menu_items))
+      self.order_log.append(order)  
       yield self.env.process(party.eat(order))
       check,satisfaction = yield self.env.process(party.leave(self.seating))
     self.checks.append(check)
@@ -225,8 +234,10 @@ class Restaurant:
       today = self.env.m_current_time().format("dddd")
       if today != day_of_week:
         day_of_week = today
+        self.env.day += 1
         self.ledger.record_day()
         self.calc_stats()
+        self.run_expenses()
         #self.env.process(self.calc_stats())
         #self.summarize()
         #self.restaurant_rating = min(0,2)
@@ -247,7 +258,16 @@ class Restaurant:
     self.env.run(until=max_seconds)
     
   def run_expenses(self):
-    pass
+    daily_cost = 0
+    for a in self.appliances:
+      daily_cost += a.daily_upkeep
+    for t in self.tables:
+      daily_cost += t.daily_upkeep
+    for o in self.order_log[self.closing_order:]:
+      daily_cost += o.total_cost
+      self.closing_order = len(self.order_log)
+    self.daily_costs.append(daily_cost)
+    
   def calc_stats(self):
     if len(self.satisfaction_scores) > 0:
       self.restaurant_rating = np.mean(self.satisfaction_scores)
@@ -264,6 +284,11 @@ class Restaurant:
     print("Parties entered: {}\nParties seated: {}\nParties paid: {}".format(len(self.entered_parties),len(self.seated_parties),len([c for c in self.checks if c > 0])))
     revenue = np.sum(self.checks)
     print("Total Revenue: {}".format(revenue))
+    upfront_costs = np.sum([a.cost for a in self.appliances]) + np.sum([t.cost for t in self.tables])
+    print("Total Upfront Costs: {}".format(upfront_costs))
+    costs = np.sum(self.daily_costs)
+    print("Total Daily Costs: {}".format(costs))
+    print("Total Profit: {}".format(revenue-costs-upfront_costs))
     leftovers = len(self.entered_parties)-len(self.checks) #if we cut off the last day while people were dining
     if leftovers > 0:
       truncated_entered_parties = self.entered_parties[:-leftovers]
@@ -277,6 +302,7 @@ class Restaurant:
 class Order:
   def __init__(self, env, name, party, table):
     self.env = env
+    self.day = self.env.day
     self.name = name
     self.party = party
     self.table = table
@@ -285,12 +311,14 @@ class Order:
     self.bill = 0
     self.satisfactions = []
     self.cook_times = []
+    self.total_cost = 0
   def place_order(self, kitchen, menu):
     self.env.ledger.print("{}: Placing order of size {} for {}".format(self.env.m_current_time().format("HH:mm:ss"),self.party.size,self.party.name))
     for diner in range(self.party.size):
         # choose a menu item
         meal_order = self.choose_menu_item(menu)
         self.bill += meal_order["price"]
+        self.total_cost += meal_order["cost"]
         # submit the order
         appliance = yield kitchen.get(lambda appliance: all(req in appliance.capabilities for req in meal_order["requirements"]))
         self.status = "cooking"
@@ -327,6 +355,8 @@ class Appliance:
     self.cook_time = norm(attributes["cook_time_mean"],attributes["cook_time_std"])
     self.quality = norm(attributes["quality_mean"],attributes["quality_std"])
     self.difficulty_rating = attributes["difficulty_rating"]
+    self.daily_upkeep = attributes["daily_upkeep"]
+    self.cost = attributes["cost"]
 
 class Table:
   '''
@@ -344,6 +374,8 @@ class Table:
     self.y = attributes["y"]
     self.radius = attributes["radius"] # each table is circumscribed in a circle
     self.seats = attributes["seats"]
+    self.daily_upkeep = attributes["daily_upkeep"]
+    self.cost = attributes["cost"]
 
 class Party:
   '''
@@ -355,6 +387,8 @@ class Party:
   def __init__(self, env, name, attributes):
     self.env = env
     self.name = name
+    self.cum_noise = 0
+    self.noise_counter = 0
     self.parse_attributes(attributes)
     self.max_wait_time = 60
     self.table = None
@@ -417,34 +451,121 @@ class Party:
 
   def check_noise(self, tables):
     while True:
-      yield self.env.timeout(60)
+      yield self.env.timeout(120)
       noise = 0.0
       for t in tables:
         if t.party != self and t.party != None:
           sqrdist = (t.x - self.table.x)**2 + (t.y-self.table.y)**2
           noise += t.party.noisiness*t.party.size/sqrdist
       self.perceived_noisiness = noise
+      perceived_noise_penalty = noise-self.noise_tolerance
+      if perceived_noise_penalty > 0:
+        self.satisfaction = np.max(self.satisfaction-perceived_noise_penalty,0)
+      #print(noise)
+      self.cum_noise += noise
+      self.noise_counter += 1
 
 
 if __name__=="__main__":
     equipment = [{"name":"Lame Pizza Oven", 
               "attributes":{"capabilities":["oven","pizza","steak"],
-                            "cook_time_mean":10, "cook_time_std":1, 
+                            "cook_time_mean":7, "cook_time_std":1, 
                             "quality_mean":0.5, "quality_std":0.4,
-                            "difficulty_rating":0.2,
+                            "difficulty_rating":0.2, "cost":300,
+                            "daily_upkeep":5, "reliability":0.2}},
+                            {"name":"Lame Pizza Oven", 
+              "attributes":{"capabilities":["oven","pizza","steak"],
+                            "cook_time_mean":7, "cook_time_std":1, 
+                            "quality_mean":0.5, "quality_std":0.4,
+                            "difficulty_rating":0.2, "cost":300,
+                            "daily_upkeep":5, "reliability":0.2}},
+                            {"name":"Lame Pizza Oven", 
+              "attributes":{"capabilities":["oven","pizza","steak"],
+                            "cook_time_mean":7, "cook_time_std":1, 
+                            "quality_mean":0.5, "quality_std":0.4,
+                            "difficulty_rating":0.2, "cost":300,
+                            "daily_upkeep":5, "reliability":0.2}},
+                            {"name":"Lame Pizza Oven", 
+              "attributes":{"capabilities":["oven","pizza","steak"],
+                            "cook_time_mean":7, "cook_time_std":1, 
+                            "quality_mean":0.5, "quality_std":0.4,
+                            "difficulty_rating":0.2, "cost":300,
+                            "daily_upkeep":5, "reliability":0.2}},
+                            {"name":"Lame Pizza Oven", 
+              "attributes":{"capabilities":["oven","pizza","steak"],
+                            "cook_time_mean":7, "cook_time_std":1, 
+                            "quality_mean":0.5, "quality_std":0.4,
+                            "difficulty_rating":0.2, "cost":300,
                             "daily_upkeep":5, "reliability":0.2}},
             
                 {"name":"Awesome Pizza Oven", 
                 "attributes":{"capabilities":["oven","pizza","steak"],
-                              "cook_time_mean":4, "cook_time_std":0.1, 
+                              "cook_time_mean":1, "cook_time_std":0.1, 
                               "quality_mean":0.7, "quality_std":0.1,
-                              "difficulty_rating":0.8,
-                              "daily_upkeep":10, "reliability":0.9}}]
+                              "difficulty_rating":0.8, "cost":4000,
+                              "daily_upkeep":10, "reliability":0.9}},
+                {"name":"Awesome Pizza Oven", 
+                "attributes":{"capabilities":["oven","pizza","steak"],
+                              "cook_time_mean":1, "cook_time_std":0.1, 
+                              "quality_mean":0.7, "quality_std":0.1,
+                              "difficulty_rating":0.8, "cost":4000,
+                              "daily_upkeep":10, "reliability":0.9}}
+                              ]
     tables = [{"name":"Table 1", 
-            "attributes":{"x":2.1,"y":3.7,"radius":4,"seats":2}},
-            {"name":"Table 2", 
-            "attributes":{"x":4.1,"y":5.7,"radius":7,"seats":5}}]
+            "attributes":{"x":2.1,"y":3.7,"radius":4,"seats":2,"cost":300,"daily_upkeep":1}},
+            # {"name":"Table 2", 
+            # "attributes":{"x":4.1,"y":5.7,"radius":7,"seats":5,"cost":800,"daily_upkeep":1}},
+            # {"name":"Table 1", 
+            # "attributes":{"x":12.1,"y":5.7,"radius":4,"seats":5,"cost":800,"daily_upkeep":1}},
+            {"name":"Table 1", 
+            "attributes":{"x":23.1,"y":13.7,"radius":4,"seats":5,"cost":800,"daily_upkeep":1}},
+            {"name":"Table 1", 
+            "attributes":{"x":26.1,"y":23.7,"radius":4,"seats":5,"cost":800,"daily_upkeep":1}},]
     r = Restaurant("Sophie's Kitchen", equipment, tables)
     r.simulate(days=7)
     #r.ledger.read_messages()
     r.final_report()
+    #r.ledger.read_messages()
+    # equipment2 = [
+    #             {"name":"Awesome Pizza Oven", 
+    #             "attributes":{"capabilities":["oven","pizza","steak"],
+    #                           "cook_time_mean":4, "cook_time_std":0.1, 
+    #                           "quality_mean":0.7, "quality_std":0.1,
+    #                           "difficulty_rating":0.8,
+    #                           "daily_upkeep":10, "reliability":0.9}}]
+    # tables2 = [{"name":"Table 1", 
+    #         "attributes":{"x":2.1,"y":3.7,"radius":4,"seats":2,"daily_upkeep":1}},
+    #         {"name":"Table 2", 
+    #         "attributes":{"x":14.1,"y":4.7,"radius":7,"seats":5,"daily_upkeep":1}},
+    #         {"name":"Table 3", 
+    #         "attributes":{"x":7.1,"y":2.7,"radius":7,"seats":8,"daily_upkeep":1}},
+    #         {"name":"Table 4", 
+    #         "attributes":{"x":11.1,"y":15.7,"radius":7,"seats":5,"daily_upkeep":1}}]
+
+
+
+    # r2 = Restaurant("Sophie's Kitchen 2", equipment2, tables2)
+    # r2.simulate(days=7)
+    # r2.final_report()
+
+
+    # equipment = [{"name":"Lame Pizza Oven", 
+    #       "attributes":{"capabilities":["oven","pizza","steak"],
+    #                     "cook_time_mean":10, "cook_time_std":1, 
+    #                     "quality_mean":0.5, "quality_std":0.4,
+    #                     "difficulty_rating":0.2,
+    #                     "daily_upkeep":5, "reliability":0.2}},
+        
+    #           {"name":"Awesome Pizza Oven", 
+    #           "attributes":{"capabilities":["oven","pizza","steak"],
+    #                         "cook_time_mean":4, "cook_time_std":0.1, 
+    #                         "quality_mean":0.7, "quality_std":0.1,
+    #                         "difficulty_rating":0.8,
+    #                         "daily_upkeep":10, "reliability":0.9}}]
+    # tables = [{"name":"Table 1", 
+    #         "attributes":{"x":2.1,"y":3.7,"radius":4,"seats":2,"daily_upkeep":1}},
+    #         {"name":"Table 2", 
+    #         "attributes":{"x":22.1,"y":55.7,"radius":7,"seats":5,"daily_upkeep":1}}]
+    # r = Restaurant("Sophie's Kitchen", equipment, tables)
+    # r.simulate(days=7)
+    # r.final_report()
