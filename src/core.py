@@ -63,6 +63,7 @@ class Restauraunt:
     self.seating = simpy.FilterStore(self.env, capacity=len(tables))
     self.seating.items = [Table(self.env,t["name"],t["attributes"]) for t in tables]
     self.max_table_size = max([t.seats for t in self.seating.items])
+    self.tables = [t for t in self.seating.items]
   
   def setup_neighborhood(self):
     self.max_party_size = 10
@@ -98,6 +99,7 @@ class Restauraunt:
     if seated == False:
       check,satisfaction = yield self.env.process(party.leave(self.seating))
     else:
+      noise_process = self.env.process(party.check_noise(self.tables))  
       order = Order(self.env,self.rw(),party,party.table)
       yield self.env.process(order.place_order(self.kitchen,self.menu_items))  
       yield self.env.process(party.eat(order))
@@ -285,7 +287,7 @@ class Table:
   def __init__(self, env, name, attributes):
     self.env = env
     self.name = name
-    self.occupants = None # a party object
+    self.party = None # a party object
     self.status = "empty"
     self.parse_attributes(attributes)
   
@@ -308,6 +310,7 @@ class Party:
     self.parse_attributes(attributes)
     self.max_wait_time = 60
     self.table = None
+    self.perceived_noisiness = 0.0
     self.satisfaction = 0
     print("Welcoming Party {} of size {}.".format(self.name,self.size))
     
@@ -341,6 +344,7 @@ class Party:
       #print(res)
       if(req in res):
         self.table = res[req]
+        self.table.party = self
         print("Party {} is seated at {} after waiting for {}".format(self.name,self.table.name,self.seating_wait))
         return True
       else:
@@ -355,11 +359,22 @@ class Party:
     check = 0
     print("Party {} has left".format(self.name))
     if self.table:
+      self.table.party = None
       subtotal = self.size*10
       tip = self.satisfaction*0.3*subtotal
       check = subtotal + tip
       yield seating.put(self.table)
     return check, self.satisfaction
+
+  def check_noise(self, tables):
+    while True:
+      yield self.env.timeout(1)
+      noise = 0.0
+      for t in tables:
+        if t.party != self and t.party != None:
+          sqrdist = (t.x - self.table.x)**2 + (t.y-self.table.y)**2
+          noise += t.party.noisiness*t.party.size/sqrdist
+      self.perceived_noisiness = noise
 
 
 if __name__=="__main__":
@@ -380,4 +395,4 @@ if __name__=="__main__":
             "attributes":{"x":4.1,"y":5.7,"radius":7,"seats":5}}]
     r = Restauraunt("Sophie's Kitchen", equipment, tables)
     r.simulate(days=1)
-    print("All Finished!!!!!!")
+    print("All done")
