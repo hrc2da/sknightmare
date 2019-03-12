@@ -1,0 +1,32 @@
+{
+    "1": {
+        "type": "rect",
+        "size": 15,
+        "seats": 2
+    },
+    "2": {
+        "type": "rect",
+        "size": 25,
+        "seats": 4
+    },
+    "3": {
+        "type": "rect",
+        "size": 40,
+        "seats": 8
+    },
+    "4": {
+        "type": "circle",
+        "size": 15,
+        "seats": 2
+    },
+    "5": {
+        "type": "circle",
+        "size": 25,
+        "seats": 4
+    },
+    "6": {
+        "type": "circle",
+        "size": 40,
+        "seats": 8
+    }
+}

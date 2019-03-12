@@ -1,0 +1,13 @@
+#title {
+    color: rgb(100, 100, 100);
+}
+
+body {
+    font-family: 'Playfair Display', monospace;
+    background-color: white !important;
+}
+
+
+.table_form {
+    margin-bottom: 1em;
+}
