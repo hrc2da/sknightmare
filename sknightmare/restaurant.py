@@ -85,18 +85,26 @@ class Restaurant:
     self.neighborhood_size = 10000
     self.max_eating_pop = 0.1*self.neighborhood_size
     self.demographics = ["size","affluence","taste","noisiness","leisureliness","patience","noise_tolerance","space_tolerance"]
-    self.demographic_means = np.array([0.25,0.3,0.3,0.6,0.4,0.3,0.6,0.5])
-                            # size aff taste noi leis  pat noi_t space_t
-    self.demographic_cov = np.matrix([[ 0.02, 0.00, 0.00, 0.09, 0.02,-0.02, 0.06,-0.02], #size
-                                      [ 0.00, 0.02, 0.10,-0.02, 0.06,-0.07,-0.07,-0.07], #affluence
-                                      [ 0.00, 0.10, 0.02,-0.02, 0.07,-0.01,-0.01, 0.0], #taste
-                                      [ 0.09,-0.02,-0.02, 0.02, 0.01, 0.00, 0.08, 0.03], #noisiness
-                                      [ 0.02, 0.06, 0.07, 0.01, 0.02, 0.07,-0.06,-0.06], #leisureliness
-                                      [-0.02,-0.07,-0.01, 0.00, 0.07, 0.02, 0.07, 0.06], #patience
-                                      [ 0.06,-0.07,-0.01, 0.08, 0.06, 0.07, 0.02, 0.09], #noise tolerance
-                                      [-0.02,-0.07, 0.00, 0.03,-0.06, 0.06, 0.09, 0.02] #space toleranceseating.put(self.table)
-                                     ])  
-    
+    self.demographic_means = np.array([0.25,0.3,0.3,0.6,0.4,0.3,0.3,0.5])
+                                        # size aff taste  noi   leis  pat noi_t space_t
+    # self.demographic_cov = np.matrix([[ 0.02, 0.00, 0.00, 0.09, 0.02,-0.02, 0.06,-0.02], #size
+    #                                   [ 0.00, 0.02, 0.10,-0.02, 0.06,-0.07,-0.07,-0.07], #affluence
+    #                                   [ 0.00, 0.10, 0.02,-0.02, 0.07,-0.01,-0.01, 0.0], #taste
+    #                                   [ 0.09,-0.02,-0.02, 0.02, 0.01, 0.00, 0.08, 0.03], #noisiness
+    #                                   [ 0.02, 0.06, 0.07, 0.01, 0.02, 0.07,-0.06,-0.06], #leisureliness
+    #                                   [-0.02,-0.07,-0.01, 0.00, 0.07, 0.02, 0.07, 0.06], #patience
+    #                                   [ 0.06,-0.07,-0.01, 0.08,-0.06, 0.07, 0.02, 0.09], #noise tolerance
+    #                                   [-0.02,-0.07, 0.00, 0.03,-0.06, 0.06, 0.09, 0.02] #space toleranceseating.put(self.table)
+    #                                  ])  
+    self.demographic_cov = np.matrix([[ 0.05,  0.0,   0.0,   0.018, 0.004,-0.004, 0.012,-0.004],
+                                      [ 0.0,   0.05,  0.02, -0.004, 0.012,-0.014,-0.014,-0.014],
+                                      [ 0.0,   0.02,  0.05, -0.004, 0.014,-0.002,-0.002, 0.0  ],
+                                      [ 0.018,-0.004,-0.004, 0.05,  0.002, 0.0,   0.016, 0.006],
+                                      [ 0.004, 0.012, 0.014, 0.002, 0.05,  0.014,-0.012,-0.012],
+                                      [-0.004,-0.014,-0.002, 0.0,   0.014, 0.05,  0.014, 0.012],
+                                      [ 0.012,-0.014,-0.002, 0.016,-0.012, 0.014, 0.05,  0.018],
+                                      [-0.004,-0.014, 0.0,   0.006,-0.012, 0.012, 0.018, 0.05,]
+                                      ])
 
   def current_time(self):
     # let's assume the time step is seconds
@@ -194,8 +202,9 @@ class Restaurant:
   #     party_attributes["space_tolerance"] = np.clip(np.random.normal(2.5,1),0,5)
       if(self.decide_entry(party_attributes)):
         num_entered += 1
-        self.entered_parties.append(party)
+        #self.entered_parties.append(party)
         p = Party(self.env,self.rw().capitalize(),party_attributes)
+        self.entered_parties.append(p)
         self.env.process(self.handle_party(p))
       else:
         continue
@@ -278,7 +287,7 @@ class Restaurant:
       truncated_entered_parties = self.entered_parties[:-leftovers]
     else:
       truncated_entered_parties = self.entered_parties
-    num_served = np.sum([p.size for i,p in enumerate(truncated_entered_parties) if self.checks[i]>0])
+    num_served = np.sum([p.size for i,p in enumerate(truncated_entered_parties) if p.paid_check>0])
     print("Total individual customers served: {}\nAverage price per entree: {}".format(num_served,revenue/num_served))
     print("Avg Satisfaction Score: {}\nStd Satisfaction Score: {}".format(np.mean(self.satisfaction_scores), np.std(self.satisfaction_scores)))
     print("Final Restaurant Rating: {}".format(self.restaurant_rating))
