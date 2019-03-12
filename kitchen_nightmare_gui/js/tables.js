@@ -1,8 +1,10 @@
 class Table {
-    constructor(type, seats, size, x, y) {
+    constructor(type, seats, size, cost, upkeep, x, y) {
         this.type = type;
         this.seats = seats;
         this.size = size;
+        this.cost = cost;
+        this.daily_upkeep = upkeep;
         this.x_original = x;
         this.y_original = y;
     }

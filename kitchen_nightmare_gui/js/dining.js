@@ -37,6 +37,8 @@ class DiningRoom {
             table_repr['size'] = table['table'].size;
             table_repr['seats'] = table['table'].seats;
             table_repr['type'] = table['table'].type;
+            table_repr['cost'] = table['table'].cost;
+            table_repr['daily_upkeep'] = table['table'].daily_upkeep;
             table_layout.push(table_repr);
         }
         return table_layout;

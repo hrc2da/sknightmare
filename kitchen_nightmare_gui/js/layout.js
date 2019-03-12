@@ -65,7 +65,7 @@ function setupRestaurant(w, h) {
         let y = table_box_y + padding * 10;
         for (let key in data) {
             let table_data = data[key];
-            let table = new Table(table_data['type'], table_data['seats'], table_data['size'], x, y);
+            let table = new Table(table_data['type'], table_data['seats'], table_data['size'], table_data['cost'], table_data['daily_upkeep'], x, y);
             let svg_attrs = table.draw();
 
             let group = svg.append("g").attrs({
@@ -90,7 +90,7 @@ function setupRestaurant(w, h) {
             // when a placeholder is clicked it creates a new table in the middle of the dining room 
             // uses DiningRoom.add_table to insert it to the dining room
             group.on("click", () => {
-                let added_table = new Table(table_data['type'], table_data['seats'], table_data['size'], dining_room.width / 2, dining_room.height / 2)
+                let added_table = new Table(table_data['type'], table_data['seats'], table_data['size'], table_data['cost'], table_data['daily_upkeep'], dining_room.width / 2, dining_room.height / 2)
                 let added_table_svg_attrs = added_table.draw();
                 // make a group for the visual table elements
                 let added_table_g = svg.append("g").attrs({
@@ -126,3 +126,5 @@ function setupRestaurant(w, h) {
 
     return dining_room;
 }
+
+
