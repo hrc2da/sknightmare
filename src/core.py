@@ -447,16 +447,20 @@ class Party:
       tip = self.satisfaction*0.3*subtotal
       check = subtotal + tip
       yield seating.put(self.table)
+      self.table = None
     return check, self.satisfaction
 
   def check_noise(self, tables):
-    while True:
-      yield self.env.timeout(120)
+    while self.table != None:
       noise = 0.0
       for t in tables:
         if t.party != self and t.party != None:
-          sqrdist = (t.x - self.table.x)**2 + (t.y-self.table.y)**2
-          noise += t.party.noisiness*t.party.size/sqrdist
+          try:
+            sqrdist = (t.x - self.table.x)**2 + (t.y-self.table.y)**2
+            noise += t.party.noisiness*t.party.size/sqrdist
+          except AttributeError as e:
+            self.env.ledger.print("Table left while checking for noise")
+            return
       self.perceived_noisiness = noise
       perceived_noise_penalty = noise-self.noise_tolerance
       if perceived_noise_penalty > 0:
@@ -464,6 +468,7 @@ class Party:
       #print(noise)
       self.cum_noise += noise
       self.noise_counter += 1
+      yield self.env.timeout(300)
 
 
 if __name__=="__main__":
@@ -496,20 +501,20 @@ if __name__=="__main__":
                             "cook_time_mean":7, "cook_time_std":1, 
                             "quality_mean":0.5, "quality_std":0.4,
                             "difficulty_rating":0.2, "cost":300,
-                            "daily_upkeep":5, "reliability":0.2}},
+                            "daily_upkeep":5, "reliability":0.2}}
             
-                {"name":"Awesome Pizza Oven", 
-                "attributes":{"capabilities":["oven","pizza","steak"],
-                              "cook_time_mean":1, "cook_time_std":0.1, 
-                              "quality_mean":0.7, "quality_std":0.1,
-                              "difficulty_rating":0.8, "cost":4000,
-                              "daily_upkeep":10, "reliability":0.9}},
-                {"name":"Awesome Pizza Oven", 
-                "attributes":{"capabilities":["oven","pizza","steak"],
-                              "cook_time_mean":1, "cook_time_std":0.1, 
-                              "quality_mean":0.7, "quality_std":0.1,
-                              "difficulty_rating":0.8, "cost":4000,
-                              "daily_upkeep":10, "reliability":0.9}}
+                # {"name":"Awesome Pizza Oven", 
+                # "attributes":{"capabilities":["oven","pizza","steak"],
+                #               "cook_time_mean":1, "cook_time_std":0.1, 
+                #               "quality_mean":0.7, "quality_std":0.1,
+                #               "difficulty_rating":0.8, "cost":4000,
+                #               "daily_upkeep":10, "reliability":0.9}},
+                # {"name":"Awesome Pizza Oven", 
+                # "attributes":{"capabilities":["oven","pizza","steak"],
+                #               "cook_time_mean":1, "cook_time_std":0.1, 
+                #               "quality_mean":0.7, "quality_std":0.1,
+                #               "difficulty_rating":0.8, "cost":4000,
+                #               "daily_upkeep":10, "reliability":0.9}}
                               ]
     tables = [{"name":"Table 1", 
             "attributes":{"x":2.1,"y":3.7,"radius":4,"seats":2,"cost":300,"daily_upkeep":1}},
