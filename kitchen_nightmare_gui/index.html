@@ -8,13 +8,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="style/style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.7.0/d3.js"></script>
-    <script
-        src="http://code.jquery.com/jquery-3.3.1.min.js"
-        integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+    <script src="http://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
         crossorigin="anonymous"></script>
-        <script src=https://cdn.jsdelivr.net/npm/promise-polyfill@8.1/dist/polyfill.min.js></script>
-        <script src=https://cdn.jsdelivr.net/npm/whatwg-fetch@3.0/dist/fetch.umd.min.js></script>
-    <script src="https://d3js.org/d3-selection-multi.v1.min.js"></script>
+    <script src=https://cdn.jsdelivr.net/npm/promise-polyfill@8.1/dist/polyfill.min.js> </script> <script src=https://cdn.jsdelivr.net/npm/whatwg-fetch@3.0/dist/fetch.umd.min.js>
+        </script> <script src="https://d3js.org/d3-selection-multi.v1.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO"
         crossorigin="anonymous">
@@ -38,9 +35,9 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="input-group mb-3">
-            Number of days to simulate: <input id = "days" type="number">
+            Number of days to simulate: <input id="days" type="number">
         </div>
         <button id="simulate">Simulate</button>
     </div>
@@ -52,28 +49,27 @@
             $("#simulate").click(() => {
                 let layout = dining_room.get_layout();
                 layout["days"] = $("#days").val();
-                $.ajax
-                    ({
-                        type: "POST",
-                        //only using this locally w/ simple flask server for now
-                        url: 'http://localhost:5000/simulate',
-                        dataType: 'application/json',
-                        data: JSON.stringify(layout),
-                        success: (report) => {
-                            console.log("ok");
-                            console.log(report);
-                            $("#reports").html(report);
-                        },
-                        error: (err) =>{
-                            console.log("error");
-                            console.log(err);
-                            e = JSON.parse(err.responseText);
-                            er = e.report;
-                            er = er.replace(/\n/g,"<br>");
-                            $("#reports").html(er);
-                        }
-                    })
-            }); 
+                $.ajax({
+                    type: "POST",
+                    //only using this locally w/ simple flask server for now
+                    url: 'http://localhost:5000/simulate',
+                    dataType: 'application/json',
+                    data: JSON.stringify(layout),
+                    success: (report) => {
+                        console.log("ok");
+                        console.log(report);
+                        $("#reports").html(report);
+                    },
+                    error: (err) => {
+                        console.log("error");
+                        console.log(err);
+                        e = JSON.parse(err.responseText);
+                        er = e.report;
+                        er = er.replace(/\n/g, "<br>");
+                        $("#reports").html(er);
+                    }
+                })
+            });
         });
     </script>
 </body>

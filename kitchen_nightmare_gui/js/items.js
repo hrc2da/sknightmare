@@ -13,10 +13,12 @@ class Item {
         let attrs = {}
         attrs['svg_type'] = svg_type;
         attrs['data'] = [{
+            'name': this.name,
             'x': this.x_original,
             'y': this.y_original,
             'size': this.size,
-            'text_pad': this.size+15
+            'text_pad': this.size + 15,
+            'attributes': this.attributes
         }];
         if (svg_type == 'rect') {
             let shape_attrs = {

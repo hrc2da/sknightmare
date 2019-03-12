@@ -23,7 +23,7 @@ function setupRestaurant(w, h) {
         stroke: "black"
     });
 
-    let dining_room = new DiningRoom(dining_width, dining_height);
+    let dining_room = new DiningRoom(dining_width, dining_height, padding);
 
     // selection pane for tables
     let table_box_width = w * 0.7;
@@ -87,41 +87,51 @@ function setupRestaurant(w, h) {
                 .text(svg_attrs['text'])
                 .attrs(svg_attrs['text_attrs'])
 
-            // when a placeholder is clicked it creates a new table in the middle of the dining room 
-            // uses DiningRoom.add_table to insert it to the dining room
-            group.on("click", () => {
-                let added_table = new Table(table_data['type'], 'Table '+dining_room.tables.length, table_data['seats'], table_data['size'], table_data['cost'], table_data['daily_upkeep'], dining_room.width / 2, dining_room.height / 2)
-                let added_table_svg_attrs = added_table.draw();
-                // make a group for the visual table elements
-                let added_table_g = svg.append("g").attrs({
-                    id: 'table_' + dining_room.num_tables
-                })
-                // draw the table
-                added_table_g.selectAll('.table_icon')
-                    .data(added_table_svg_attrs['data'])
-                    .enter()
-                    .append(added_table_svg_attrs['svg_type'])
-                    .attrs(added_table_svg_attrs['shape_attrs']);
-                added_table_g.selectAll('.table_text')
-                    .data(added_table_svg_attrs['data'])
-                    .enter()
-                    .append("text")
-                    .text(added_table_svg_attrs['text'])
-                    .attrs(added_table_svg_attrs['text_attrs'])
+            let drag = d3.drag().on('drag', function (d) {
+                    d3.select('#candidate_table_').select(svg_attrs['svg_type']).attrs(svg_attrs['shape_drag_attrs']);
+                    d3.select('#candidate_table_').select('text').attrs(svg_attrs['text_drag_attrs']);
+                }).on('start', function (d) {
+                    let new_table_group = svg.append("g").attrs({
+                        id: 'candidate_table_'
+                    })
+                    // create new table_icon
+                    new_table_group.selectAll(".new_table_icon")
+                        .data(svg_attrs['data'])
+                        .enter()
+                        .append(svg_attrs['svg_type'])
+                        .attrs(svg_attrs['shape_attrs']);
 
-                // add the table to the dining room this all should likely be part of the dining room class but this will
-                // be done tomorrow <<<<<<<< DO THIS
-                dining_room.add_table({
-                    'table': added_table,
-                    'table_svg_attrs': added_table_svg_attrs,
-                    'table_g': added_table_g
+                    // create new table_text
+                    new_table_group.selectAll(".new_table_text")
+                        .data(svg_attrs['data'])
+                        .enter()
+                        .append("text")
+                        .text(svg_attrs['text'])
+                        .attrs(svg_attrs['text_attrs'])
                 })
-            })
+                .on('end', function (d) {
+                    let mouseX = d3.mouse(this)[0];
+                    let mouseY = d3.mouse(this)[1];
 
+                    if (mouseX < dining_width + padding && mouseX > padding && mouseY > padding && mouseY < dining_height) {
+                        let new_table_group = d3.select("#candidate_table_");
+                        new_table_group.attrs({
+                            id: 'table_' + dining_room.num_tables
+                        });
+                        dining_room.add_table({
+                            'table_svg_attrs': svg_attrs,
+                            'table_g': new_table_group
+                        });
+                    } else {
+                        d3.select("#candidate_table_").remove();
+                    }
+                })
+
+            group.call(drag);
             placeholder_tables.push(table);
             x += increment;
         }
-        
+
 
     });
 
@@ -154,37 +164,46 @@ function setupRestaurant(w, h) {
                 .text(svg_attrs['text'])
                 .attrs(svg_attrs['text_attrs'])
 
-            // when a placeholder is clicked it creates a new item in the middle of the dining room 
-            // uses DiningRoom.add_item to insert it to the dining room
-            group.on("click", () => {
-                let added_item = new Item(item_data['type'], item_data['name']+' '+dining_room.items.length, item_data['size'], item_data['attributes'], dining_room.width / 2, dining_room.height / 2);
-                let added_item_svg_attrs = added_item.draw();
-                // make a group for the visual table elements
-                let added_item_g = svg.append("g").attrs({
-                    id: 'item_' + dining_room.num_items
-                })
-                // draw the table
-                added_item_g.selectAll('.table_icon')
-                    .data(added_item_svg_attrs['data'])
-                    .enter()
-                    .append(added_item_svg_attrs['svg_type'])
-                    .attrs(added_item_svg_attrs['shape_attrs']);
-                added_item_g.selectAll('.table_text')
-                    .data(added_item_svg_attrs['data'])
-                    .enter()
-                    .append("text")
-                    .text(added_item_svg_attrs['text'])
-                    .attrs(added_item_svg_attrs['text_attrs'])
+            let drag = d3.drag().on('drag', function (d) {
+                    d3.select('#candidate_item_').select(svg_attrs['svg_type']).attrs(svg_attrs['shape_drag_attrs']);
+                    d3.select('#candidate_item_').select('text').attrs(svg_attrs['text_drag_attrs']);
+                }).on('start', function (d) {
+                    let new_item_group = svg.append("g").attrs({
+                        id: 'candidate_item_'
+                    })
+                    // create new item_icon
+                    new_item_group.selectAll(".new_item_icon")
+                        .data(svg_attrs['data'])
+                        .enter()
+                        .append(svg_attrs['svg_type'])
+                        .attrs(svg_attrs['shape_attrs']);
 
-                // add the table to the dining room this all should likely be part of the dining room class but this will
-                // be done tomorrow <<<<<<<< DO THIS
-                dining_room.add_item({
-                    'item': added_item,
-                    'item_svg_attrs': added_item_svg_attrs,
-                    'item_g': added_item_g
+                    // create new item_text
+                    new_item_group.selectAll(".new_item_text")
+                        .data(svg_attrs['data'])
+                        .enter()
+                        .append("text")
+                        .text(svg_attrs['text'])
+                        .attrs(svg_attrs['text_attrs'])
                 })
-            })
+                .on('end', function (d) {
+                    let mouseX = d3.mouse(this)[0];
+                    let mouseY = d3.mouse(this)[1];
 
+                    if (mouseX < dining_width + padding && mouseX > padding && mouseY > padding && mouseY < dining_height) {
+                        let new_item_group = d3.select("#candidate_item_");
+                        new_item_group.attrs({
+                            id: 'item_' + dining_room.num_items
+                        });
+                        dining_room.add_item({
+                            'item_svg_attrs': svg_attrs,
+                            'item_g': new_item_group
+                        });
+                    } else {
+                        d3.select("#candidate_item_").remove();
+                    }
+                })
+            group.call(drag);
             placeholder_items.push(item);
             y += increment;
         }
@@ -192,5 +211,3 @@ function setupRestaurant(w, h) {
 
     return dining_room;
 }
-
-

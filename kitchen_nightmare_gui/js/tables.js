@@ -8,7 +8,13 @@ class Table {
         this.daily_upkeep = upkeep;
         this.x_original = x;
         this.y_original = y;
-        this.attributes = {"type":this.type,"seats":this.seats,"radius":this.size,"cost":this.cost,"daily_upkeep":this.daily_upkeep}
+        this.attributes = {
+            "type": this.type,
+            "seats": this.seats,
+            "radius": this.size,
+            "cost": this.cost,
+            "daily_upkeep": this.daily_upkeep
+        }
     }
 
     draw = () => {
@@ -16,10 +22,13 @@ class Table {
         let attrs = {}
         attrs['svg_type'] = svg_type;
         attrs['data'] = [{
+            'name': this.name,
             'x': this.x_original,
             'y': this.y_original,
             'size': this.size,
-            'text_pad': 5
+            'text_pad': 5,
+            'attributes': this.attributes
+
         }];
         if (svg_type == 'rect') {
             let shape_attrs = {
