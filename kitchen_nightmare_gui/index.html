@@ -20,6 +20,7 @@
         crossorigin="anonymous">
     <link href="https://fonts.googleapis.com/css?family=Nova+Mono|VT323|Playfair+Display" rel="stylesheet">
     <script src="js/tables.js"></script>
+    <script src="js/items.js"></script>
     <script src="js/dining.js"></script>
     <script src="js/layout.js"></script>
 </head>
@@ -32,6 +33,14 @@
                 <div id="window">
                 </div>
             </div>
+            <div class="col-2">
+                <div id="reports">
+                </div>
+            </div>
+        </div>
+        
+        <div class="input-group mb-3">
+            Number of days to simulate: <input id = "days" type="number">
         </div>
         <button id="simulate">Simulate</button>
     </div>
@@ -41,7 +50,29 @@
         //so so sorry for this :( :( :(
         $(document).ready(() => {
             $("#simulate").click(() => {
-                console.log(dining_room.get_layout())
+                let layout = dining_room.get_layout();
+                layout["days"] = $("#days").val();
+                $.ajax
+                    ({
+                        type: "POST",
+                        //only using this locally w/ simple flask server for now
+                        url: 'http://localhost:5000/simulate',
+                        dataType: 'application/json',
+                        data: JSON.stringify(layout),
+                        success: (report) => {
+                            console.log("ok");
+                            console.log(report);
+                            $("#reports").html(report);
+                        },
+                        error: (err) =>{
+                            console.log("error");
+                            console.log(err);
+                            e = JSON.parse(err.responseText);
+                            er = e.report;
+                            er = er.replace(/\n/g,"<br>");
+                            $("#reports").html(er);
+                        }
+                    })
             }); 
         });
     </script>

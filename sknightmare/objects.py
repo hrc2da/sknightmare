@@ -167,14 +167,16 @@ class Party:
   
   def leave(self, seating):
     self.paid_check = 0
+    self.satisfaction = max(0,self.satisfaction)
     self.env.ledger.print("Party {} has left".format(self.name))
     if self.table:
       self.table.party = None
       subtotal = self.bill
-      tip = self.satisfaction*0.3*subtotal
+      tip = max(self.satisfaction,0)*0.3*subtotal
       self.paid_check = subtotal + tip
       yield seating.put(self.table)
       self.table = None
+      print("Party {} is paying {} with tip {} with sat {}".format(self.name,self.paid_check,tip,max(self.satisfaction,0)))
     return self.paid_check, self.satisfaction
 
   def check_noise(self, tables):
@@ -184,7 +186,7 @@ class Party:
         if t.party != self and t.party != None:
           try:
             sqrdist = (t.x - self.table.x)**2 + (t.y-self.table.y)**2
-            noise += 5*t.party.noisiness*t.party.size/sqrdist
+            noise += 10*t.party.noisiness*t.party.size/np.sqrt(sqrdist)
           except AttributeError as e:
             self.env.ledger.print("Table left while checking for noise")
             return

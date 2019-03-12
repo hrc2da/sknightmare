@@ -7,7 +7,7 @@ from random_words import RandomWords
 import arrow # for nicer datetimes
 import math
 
-from sknightmare.objects import Party, Table, Order, Appliance, Ledger
+from objects import Party, Table, Order, Appliance, Ledger
 
 class Restaurant:
   '''
@@ -17,7 +17,7 @@ class Restaurant:
   '''
   def __init__(self, name, equipment, tables, start_time='2019-01-01T00:00:00'):
     self.env = simpy.Environment()
-    self.ledger = Ledger(verbose=False,save_messages=True)
+    self.ledger = Ledger(verbose=True,save_messages=True)
     self.env.ledger = self.ledger
     self.env.day = 0
     self.name = name
@@ -271,23 +271,26 @@ class Restaurant:
     self.env.ledger.print("Summary for {}: satisfaction: {}".format(day,self.restaurant_rating))
 
   def final_report(self):
-    print("*"*80)
-    print("Simulation run for {} days.".format(self.ledger.num_days))
-    print("*"*80)
-    print("Parties entered: {}\nParties seated: {}\nParties paid: {}".format(len(self.entered_parties),len(self.seated_parties),len([c for c in self.checks if c > 0])))
+    stringbuilder = ""
+    stringbuilder += "*"*80+"\n"
+    stringbuilder += "Simulation run for {} days.\n".format(self.ledger.num_days)
+    stringbuilder += "*"*80+"\n"
+    stringbuilder += "Parties entered: {}\nParties seated: {}\nParties paid: {}\n".format(len(self.entered_parties),len(self.seated_parties),len([c for c in self.checks if c > 0]))
     revenue = np.sum(self.checks)
-    print("Total Revenue: {}".format(revenue))
+    stringbuilder += "Total Revenue: ${:.2f}\n".format(revenue)
     upfront_costs = np.sum([a.cost for a in self.appliances]) + np.sum([t.cost for t in self.tables])
-    print("Total Upfront Costs: {}".format(upfront_costs))
+    stringbuilder += "Total Upfront Costs: ${:.2f}\n".format(upfront_costs)
     costs = np.sum(self.daily_costs)
-    print("Total Daily Costs: {}".format(costs))
-    print("Total Profit: {}".format(revenue-costs-upfront_costs))
+    stringbuilder += "Total Daily Costs: ${:.2f}\n".format(costs)
+    stringbuilder += "Total Profit: ${:.2f}\n".format(revenue-costs-upfront_costs)
     leftovers = len(self.entered_parties)-len(self.checks) #if we cut off the last day while people were dining
     if leftovers > 0:
       truncated_entered_parties = self.entered_parties[:-leftovers]
     else:
       truncated_entered_parties = self.entered_parties
     num_served = np.sum([p.size for i,p in enumerate(truncated_entered_parties) if p.paid_check>0])
-    print("Total individual customers served: {}\nAverage price per entree: {}".format(num_served,revenue/num_served))
-    print("Avg Satisfaction Score: {}\nStd Satisfaction Score: {}".format(np.mean(self.satisfaction_scores), np.std(self.satisfaction_scores)))
-    print("Final Restaurant Rating: {}".format(self.restaurant_rating))
+    stringbuilder += "Total individual customers served: {}\nAverage price per entree: ${:.2f}\n".format(num_served,revenue/num_served)
+    stringbuilder += "Avg Satisfaction Score: {:.2f}\nStd Satisfaction Score: {:.2f}\n".format(np.mean(self.satisfaction_scores), np.std(self.satisfaction_scores))
+    stringbuilder += "Final Restaurant Rating: {:.2f}\n".format(self.restaurant_rating)
+    print(stringbuilder)
+    return stringbuilder

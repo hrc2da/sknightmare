@@ -1,12 +1,14 @@
 class Table {
-    constructor(type, seats, size, cost, upkeep, x, y) {
+    constructor(type, name, seats, size, cost, upkeep, x, y) {
         this.type = type;
+        this.name = name;
         this.seats = seats;
         this.size = size;
         this.cost = cost;
         this.daily_upkeep = upkeep;
         this.x_original = x;
         this.y_original = y;
+        this.attributes = {"type":this.type,"seats":this.seats,"radius":this.size,"cost":this.cost,"daily_upkeep":this.daily_upkeep}
     }
 
     draw = () => {
