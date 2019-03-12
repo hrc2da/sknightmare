@@ -72,12 +72,14 @@ function setupRestaurant(w, h) {
                 id: 'placeholder_table_' + key
             })
 
+            // add the placeholder icons 
             group.selectAll(".place_holder_table_icon")
                 .data(svg_attrs['data'])
                 .enter()
                 .append(svg_attrs['svg_type'])
                 .attrs(svg_attrs['shape_attrs']);
 
+            // add placeholeder text
             group.selectAll(".place_holder_table_text")
                 .data(svg_attrs['data'])
                 .enter()
@@ -85,13 +87,16 @@ function setupRestaurant(w, h) {
                 .text(svg_attrs['text'])
                 .attrs(svg_attrs['text_attrs'])
 
+            // when a placeholder is clicked it creates a new table in the middle of the dining room 
+            // uses DiningRoom.add_table to insert it to the dining room
             group.on("click", () => {
                 let added_table = new Table(table_data['type'], table_data['seats'], table_data['size'], dining_room.width / 2, dining_room.height / 2)
                 let added_table_svg_attrs = added_table.draw();
+                // make a group for the visual table elements
                 let added_table_g = svg.append("g").attrs({
                     id: 'table_' + dining_room.num_tables
                 })
-
+                // draw the table
                 added_table_g.selectAll('.table_icon')
                     .data(added_table_svg_attrs['data'])
                     .enter()
@@ -104,6 +109,8 @@ function setupRestaurant(w, h) {
                     .text(added_table_svg_attrs['text'])
                     .attrs(added_table_svg_attrs['text_attrs'])
 
+                // add the table to the dining room this all should likely be part of the dining room class but this will
+                // be done tomorrow <<<<<<<< DO THIS
                 dining_room.add_table({
                     'table': added_table,
                     'table_svg_attrs': added_table_svg_attrs,

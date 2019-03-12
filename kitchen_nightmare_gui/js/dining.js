@@ -7,21 +7,27 @@ class DiningRoom {
         this.height = h;
     }
 
+    // adds a table to the center of the dining table such that the user can drag it around the dining room 
     add_table = (table) => {
+        // all the disparate places where there is table information
         let table_obj = table['table'];
         let table_svg_attrs = table['table_svg_attrs'];
         let table_svg = table['table_g'];
 
+        // add drag handling to the table object
         let drag = d3.drag().on('drag', function (d) {
             d3.select(this).select(table_svg_attrs['svg_type']).attrs(table_svg_attrs['shape_drag_attrs']);
             d3.select(this).select('text').attrs(table_svg_attrs['text_drag_attrs']);
         })
 
         table_svg.call(drag);
+
+        //update table tracking 
         this.num_tables++;
         this.tables.push(table);
     }
 
+    // export the current layout as a list of json objects
     get_layout = () => {
         let table_layout = []
         for (let table of this.tables) {
