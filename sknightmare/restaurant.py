@@ -281,13 +281,13 @@ class Restaurant:
     day = self.env.m_current_time().format("ddd MMM D")
     customers = np.sum([p.size for p in parties])
     if customers > 0:
-      noise = np.sum([p.size*p.noisiness for p in parties])
+      noise = np.sum([p.size*p.noisiness for p in parties])/customers
     else:
       noise = 0
     total_bills = np.sum([p.paid_check for p in parties])
     satisfaction = np.mean([p.satisfaction for p in parties])
     self.env.ledger.print("Summary for {}: satisfaction: {}".format(day,self.restaurant_rating))
-    self.day_log.put({"expenses":costs,"rating":self.restaurant_rating,"num_entered":volume, "noise": noise, "revenue":total_bills, "satisfaction": satisfaction})
+    self.day_log.put({"day": self.env.day,"expenses":costs,"rating":self.restaurant_rating,"num_entered":volume, "noise": noise, "revenue":total_bills, "satisfaction": satisfaction})
 
 
   def final_report(self):
