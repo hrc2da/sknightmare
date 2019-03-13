@@ -12,14 +12,15 @@ class DiningRoom {
     // adds a table to the center of the dining table such that the user can drag it around the dining room 
     add_table = (table) => {
         // all the disparate places where there is table information
-        let table_svg_attrs = table['table_svg_attrs'];
+        // let table_svg_attrs = table['table_svg_attrs'];
         let table_g = table['table_g'];
-        let table_data = table['table_svg_attrs']['data'][0];
+        let table_data = Object.assign({}, table['table_svg_attrs']['data'][0]);
         table_data.name = 'Table ' + dining_room.num_tables;
         table['data'] = table_data;
 
-        let added_table = new Table(table_svg_attrs['svg_type'], 'Table ' + dining_room.num_tables, table_data['num_seats'], table_data['size'], table_data['cost'], table_data['daily_upkeep'], table_data['x'], table_data['y']);
-
+        let added_table = new Table(table['table_svg_attrs']['svg_type'], 'Table ' + dining_room.num_tables, table_data['num_seats'], table_data['size'], table_data['cost'], table_data['daily_upkeep'], table_data['x'], table_data['y']);
+        let table_svg_attrs = added_table.draw();
+        table_data = table_svg_attrs['data'][0];
         // add drag handling to the table object
         let drag = d3.drag().on('drag', function (d) {
             d3.select(this).select(table_svg_attrs['svg_type']).attrs(table_svg_attrs['shape_drag_attrs']);
@@ -47,12 +48,12 @@ class DiningRoom {
 
     add_item = (item) => {
         // all the disparate places where there is table information
-        let item_svg_attrs = item['item_svg_attrs'];
         let item_g = item['item_g'];
-        let item_data = item['item_svg_attrs']['data'][0];
+        let item_data = Object.assign({}, item['item_svg_attrs']['data'][0]);
         item['data'] = item_data;
         let added_item = new Item(item_data['svg_type'], item_data['name'] + ' ' + dining_room.num_items, item_data['size'], item_data['attributes'], item_data['x'], item_data['y']);
-
+        let item_svg_attrs = added_item.draw();
+        item_data = item_svg_attrs['data'][0];
         // add drag handling to the table object
         let drag = d3.drag().on('drag', function (d) {
             d3.select(this).select(item_svg_attrs['svg_type']).attrs(item_svg_attrs['shape_drag_attrs']);
