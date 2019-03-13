@@ -191,9 +191,9 @@ class Party:
             sqrdist = (t.x - self.table.x)**2 + (t.y-self.table.y)**2
             noise += 1*t.party.noisiness*t.party.size/sqrdist
             if sqrdist == 0:
-              print(self.noise_tolerance)
-              print (self.table)
-              print("t: " + str(t))
+              print("Table Party {}, {}, {}".format(self.table.party.name, self.name, t.party.name))
+              print("Self Table name {} X:{} Y:{}".format(self.table.name, self.table.x, self.table.y))
+              print("Self Table name {} X:{} Y:{}".format(t.name, t.x, t.y))
           except AttributeError as e:
             self.env.ledger.print("Table left while checking for noise")
             return
