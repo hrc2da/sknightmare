@@ -119,7 +119,7 @@ function setupRestaurant(w, h) {
                             id: 'table_' + dining_room.num_tables
                         });
                         dining_room.add_table({
-                            'table_svg_attrs': svg_attrs,
+                            'table_svg_attrs': Object.assign({}, svg_attrs),
                             'table_g': new_table_group
                         });
                     } else {
@@ -196,7 +196,7 @@ function setupRestaurant(w, h) {
                             id: 'item_' + dining_room.num_items
                         });
                         dining_room.add_item({
-                            'item_svg_attrs': svg_attrs,
+                            'item_svg_attrs': Object.assign({}, svg_attrs),
                             'item_g': new_item_group
                         });
                     } else {

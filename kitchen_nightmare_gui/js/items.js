@@ -4,8 +4,8 @@ class Item {
         this.name = name;
         this.size = size;
         this.attributes = attributes;
-        this.x_original = x;
-        this.y_original = y;
+        this.x_original = copy(x);
+        this.y_original = copy(y);
     }
 
     draw = () => {
