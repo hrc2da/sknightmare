@@ -134,6 +134,7 @@ class Party:
     self.noise_tolerance = attributes["noise_tolerance"]
     self.space_tolerance = attributes["space_tolerance"]
     self.mood = attributes["mood"]
+    self.tolerance_weights = {}
     self.max_budget = 100 # how much the richest of the rich can/would pay for a meal
     
   def wait_for_table(self, seating):
@@ -177,10 +178,11 @@ class Party:
       self.paid_check = subtotal + tip
       yield seating.put(self.table)
       self.table = None
-      print("Party {} is paying {} with tip {} with sat {}".format(self.name,self.paid_check,tip,max(self.satisfaction,0)))
+      self.env.ledger.print("Party {} is paying {} with tip {} with sat {}".format(self.name,self.paid_check,tip,max(self.satisfaction,0)))
     return self.paid_check, self.satisfaction
 
-  def check_noise(self, tables):
+
+  def update_satisfaction(self, tables):
     while self.table != None:
       noise = 0.0
       for t in tables:
@@ -188,19 +190,17 @@ class Party:
           try:
             sqrdist = (t.x - self.table.x)**2 + (t.y-self.table.y)**2
             noise += 1*t.party.noisiness*t.party.size/sqrdist
+            if sqrdist == 0:
+              print(self.noise_tolerance)
+              print (self.table)
+              print("t: " + str(t))
           except AttributeError as e:
             self.env.ledger.print("Table left while checking for noise")
             return
       self.perceived_noisiness = noise
-      #print(self.noise_tolerance)
-      perceived_noise_penalty = noise-self.noise_tolerance
-      if perceived_noise_penalty > 0:
-        self.satisfaction -= perceived_noise_penalty
-        #print(self.satisfaction)
-      #print(noise)
-      self.cum_noise += noise
-      self.noise_counter += 1
+      self.satisfaction = self.mood + (1-self.noise_tolerance)*self.perceived_noisiness
       yield self.env.timeout(300)
+
 
 
 if __name__=="__main__":

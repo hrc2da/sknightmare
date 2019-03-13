@@ -17,7 +17,7 @@ class Restaurant:
   '''
   def __init__(self, name, equipment, tables, start_time='2019-01-01T00:00:00'):
     self.env = simpy.Environment()
-    self.ledger = Ledger(verbose=True,save_messages=True)
+    self.ledger = Ledger(verbose=False,save_messages=True)
     self.env.ledger = self.ledger
     self.env.day = 0
     self.name = name
@@ -124,7 +124,7 @@ class Restaurant:
       check,satisfaction = yield self.env.process(party.leave(self.seating))
     else:
       self.seated_parties.append(party)
-      noise_process = self.env.process(party.check_noise(self.tables))  
+      noise_process = self.env.process(party.update_satisfaction(self.tables))  
       order = Order(self.env,self.rw(),party,party.table)
       yield self.env.process(order.place_order(self.kitchen,self.menu_items))
       self.order_log.append(order)  
