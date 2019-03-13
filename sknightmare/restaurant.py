@@ -6,7 +6,7 @@ seed(10)
 from random_words import RandomWords
 import arrow # for nicer datetimes
 import math
-
+import queue
 from objects import Party, Table, Order, Appliance, Ledger
 
 class Restaurant:
@@ -15,12 +15,16 @@ class Restaurant:
     tables is a list of Tables
 
   '''
-  def __init__(self, name, equipment, tables, start_time='2019-01-01T00:00:00'):
+  def __init__(self, name, equipment, tables, start_time='2019-01-01T00:00:00', day_log = None):
     self.env = simpy.Environment()
     self.ledger = Ledger(verbose=False,save_messages=True)
     self.env.ledger = self.ledger
     self.env.day = 0
     self.name = name
+    if day_log:
+      self.day_log = day_log
+    else:
+      self.day_log = queue.Queue()
     self.menu_items = [
       {
           "name": "Simple Pizza",
@@ -233,7 +237,7 @@ class Restaurant:
         self.calc_stats()
         self.run_expenses()
         #self.env.process(self.calc_stats())
-        #self.summarize()
+        self.summarize()
         #self.restaurant_rating = min(0,2)
         #self.restaurant_rating = np.mean(self.satisfaction_scores)
         #day = self.env.m_current_time().format("ddd MMM D")
@@ -270,7 +274,7 @@ class Restaurant:
   def summarize(self):
     day = self.env.m_current_time().format("ddd MMM D")
     self.env.ledger.print("Summary for {}: satisfaction: {}".format(day,self.restaurant_rating))
-
+    self.day_log.put(self.restaurant_rating)
   def final_report(self):
     stringbuilder = ""
     stringbuilder += "*"*80+"\n"

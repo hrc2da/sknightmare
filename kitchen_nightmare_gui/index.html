@@ -8,6 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="style/style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.7.0/d3.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
     <script src="http://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
         crossorigin="anonymous"></script>
     <script src=https://cdn.jsdelivr.net/npm/promise-polyfill@8.1/dist/polyfill.min.js> </script> <script src=https://cdn.jsdelivr.net/npm/whatwg-fetch@3.0/dist/fetch.umd.min.js>
@@ -43,32 +44,55 @@
     </div>
 
     <script>
-        let dining_room = setupRestaurant(900, 494);
+        console.log("starting");
+        //let dining_room = setupRestaurant(900, 494);
+        let socket = io('http://localhost:5000');
+        console.log("connecting");
+        socket.on('connect', function(){console.log("connected")});
+        socket.on('session_id', function(sess_id) {
+            //      socket.emit('simulate',JSON.stringify({"tables":[{"name":"Table 1", 
+            // "attributes":{"x":2.21,"y":3.27,"radius":4,"seats":2,"cost":300,"daily_upkeep":1}}],
+            //      "days":3,
+            //      "equipment":[{"name":"Lame Pizza Oven", 
+            //                 "attributes":{"capabilities":["oven","pizza","steak"],
+            //                                 "cook_time_mean":7, "cook_time_std":1, 
+            //                                 "quality_mean":0.5, "quality_std":0.4,
+            //                                 "difficulty_rating":0.2, "cost":300,
+            //                                 "daily_upkeep":5, "reliability":0.2}}]}));
+                 console.log(sess_id);
+             });
+        socket.on('day_report', function(report){
+            console.log(report);
+        });
+        socket.on('sim_report', function(report){
+            console.log(report);
+        });
         //so so sorry for this :( :( :(
         $(document).ready(() => {
             $("#simulate").click(() => {
                 let layout = dining_room.get_layout();
                 layout["days"] = $("#days").val();
-                $.ajax({
-                    type: "POST",
-                    //only using this locally w/ simple flask server for now
-                    url: 'http://localhost:5000/simulate',
-                    dataType: 'application/json',
-                    data: JSON.stringify(layout),
-                    success: (report) => {
-                        console.log("ok");
-                        console.log(report);
-                        $("#reports").html(report);
-                    },
-                    error: (err) => {
-                        console.log("error");
-                        console.log(err);
-                        e = JSON.parse(err.responseText);
-                        er = e.report;
-                        er = er.replace(/\n/g, "<br>");
-                        $("#reports").html(er);
-                    }
-                })
+                socket.emit('simulate',JSON.stringify(layout));
+                // $.ajax({
+                //     type: "POST",
+                //     //only using this locally w/ simple flask server for now
+                //     url: 'http://localhost:5000/simulate',
+                //     dataType: 'application/json',
+                //     data: JSON.stringify(layout),
+                //     success: (report) => {
+                //         console.log("ok");
+                //         console.log(report);
+                //         $("#reports").html(report);
+                //     },
+                //     error: (err) => {
+                //         console.log("error");
+                //         console.log(err);
+                //         e = JSON.parse(err.responseText);
+                //         er = e.report;
+                //         er = er.replace(/\n/g, "<br>");
+                //         $("#reports").html(er);
+                //     }
+                // })
             });
         });
     </script>

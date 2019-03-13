@@ -2,9 +2,20 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_socketio import SocketIO, send, emit
 from restaurant import Restaurant
+from queue import Queue
+import time
+import json
 app = Flask(__name__)
 CORS(app)
 socketio = SocketIO(app)
+
+
+class RestaurantDayQueue(Queue):
+    def put(self, item, block=True, timeout=None):
+        
+        emit('day_report',item)
+        print(item)
+        super().put(item, block, timeout)
 
 
 @app.route('/simulate', methods=['POST'])
@@ -22,9 +33,14 @@ def handle_connect():
     emit('session_id', sess)
 
 
+
 @socketio.on('simulate')
 def socket_simulate(restaurant):
-    pass
+    layout = json.loads(restaurant)
+    rdq = RestaurantDayQueue()  
+    r = Restaurant("Sophie's Kitchen", layout["equipment"], layout["tables"],day_log=rdq)
+    r.simulate(days=int(layout["days"]))
+    emit("sim_report",r.final_report())
 
 
 if __name__ == "__main__":
