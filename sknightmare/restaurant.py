@@ -214,6 +214,7 @@ class Restaurant:
       else:
         continue
     self.env.ledger.print("Total groups generated: {}, total entered: {}".format(num_generated, num_entered))   
+    return num_entered
   
   def decide_entry(self,party_attributes):
     if(party_attributes["size"] > self.max_table_size):
@@ -227,6 +228,7 @@ class Restaurant:
     
   def simulation_loop(self):
     day_of_week = ""
+    daily_customers = 0
     while True:
       yield self.env.timeout(60*60) #every hour
       today = self.env.m_current_time().format("dddd")
@@ -235,16 +237,17 @@ class Restaurant:
         self.env.day += 1
         self.ledger.record_day()
         self.calc_stats()
-        self.run_expenses()
+        costs = self.run_expenses()
         #self.env.process(self.calc_stats())
-        self.summarize()
+        self.summarize(costs,daily_customers)
+        daily_customers = 0
         #self.restaurant_rating = min(0,2)
         #self.restaurant_rating = np.mean(self.satisfaction_scores)
         #day = self.env.m_current_time().format("ddd MMM D")
         #print("Summary for {}: satisfaction: {}".format(day,self.restaurant_rating))
       # generate 0+ parties based on the time of day & popularity of the restaurant
-      self.generate_parties(self.sample_num_parties())     
-        
+      daily_customers +=  self.generate_parties(self.sample_num_parties())     
+      
         
   def simulate(self,seconds=None,days=None):
     if seconds:
@@ -265,16 +268,19 @@ class Restaurant:
       daily_cost += o.total_cost
       self.closing_order = len(self.order_log)
     self.daily_costs.append(daily_cost)
+    return daily_cost
     
   def calc_stats(self):
     if len(self.satisfaction_scores) > 0:
       self.restaurant_rating = np.mean(self.satisfaction_scores)
 
  
-  def summarize(self):
+  def summarize(self,costs,volume):
     day = self.env.m_current_time().format("ddd MMM D")
     self.env.ledger.print("Summary for {}: satisfaction: {}".format(day,self.restaurant_rating))
-    self.day_log.put({"noise":self.restaurant_rating})
+    self.day_log.put({"expenses":costs,"noise":self.restaurant_rating,"num_entered":volume})
+
+
   def final_report(self):
     stringbuilder = ""
     stringbuilder += "*"*80+"\n"
