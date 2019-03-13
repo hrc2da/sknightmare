@@ -163,7 +163,7 @@ class Party:
         return False
   def eat(self,order):
     self.env.ledger.print("Party {} is eating".format(self.name))
-    self.satisfaction += np.mean(order.satisfactions) #should consider wait time here as well
+    # self.satisfaction += np.mean(order.satisfactions) #should consider wait time here as well
     self.bill = order.bill
     yield self.env.timeout(10*60*self.size)
   
@@ -189,7 +189,7 @@ class Party:
         if t.party != self and t.party != None:
           try:
             sqrdist = (t.x - self.table.x)**2 + (t.y-self.table.y)**2
-            noise += 1*t.party.noisiness*t.party.size/sqrdist
+            noise += 2*t.party.noisiness*t.party.size/sqrdist
             if sqrdist == 0:
               print("Table Party {}, {}, {}".format(self.table.party.name, self.name, t.party.name))
               print("Self Table name {} X:{} Y:{}".format(self.table.name, self.table.x, self.table.y))
@@ -198,7 +198,7 @@ class Party:
             self.env.ledger.print("Table left while checking for noise")
             return
       self.perceived_noisiness = noise
-      self.satisfaction = self.mood + (1-self.noise_tolerance)*self.perceived_noisiness
+      self.satisfaction = self.mood - (1-self.noise_tolerance)*self.perceived_noisiness
       yield self.env.timeout(300)
 
 
