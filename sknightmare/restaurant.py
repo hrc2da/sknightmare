@@ -285,7 +285,7 @@ class Restaurant:
     else:
       noise = 0
     total_bills = np.sum([p.paid_check for p in parties])
-    satisfaction = np.mean([p.satisfaction for p in parties])
+    satisfaction = np.mean([p.satisfaction for p in parties if np.isnan(p.satisfaction)])
     self.env.ledger.print("Summary for {}: satisfaction: {}".format(day,self.restaurant_rating))
     self.day_log.put({"day": self.env.day,"expenses":costs,"rating":self.restaurant_rating,"num_entered":volume, "noise": noise, "revenue":total_bills, "satisfaction": satisfaction})
 

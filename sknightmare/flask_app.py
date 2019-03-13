@@ -12,9 +12,8 @@ socketio = SocketIO(app)
 
 class RestaurantDayQueue(Queue):
     def put(self, report, block=True, timeout=None):
-        
-        emit('day_report',jsonify(report))
         print(report)
+        emit('day_report',jsonify(report))
         super().put(report, block, timeout)
 
 
