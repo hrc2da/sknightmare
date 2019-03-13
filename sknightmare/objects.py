@@ -134,6 +134,8 @@ class Party:
     self.noise_tolerance = attributes["noise_tolerance"]
     self.space_tolerance = attributes["space_tolerance"]
     self.mood = attributes["mood"]
+    self.paid_check = 0
+    self.satisfaction = self.mood
     self.tolerance_weights = {}
     self.max_budget = 100 # how much the richest of the rich can/would pay for a meal
     

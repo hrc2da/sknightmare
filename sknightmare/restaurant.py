@@ -229,6 +229,7 @@ class Restaurant:
   def simulation_loop(self):
     day_of_week = ""
     daily_customers = 0
+    party_index = 0
     while True:
       yield self.env.timeout(60*60) #every hour
       today = self.env.m_current_time().format("dddd")
@@ -239,8 +240,9 @@ class Restaurant:
         self.calc_stats()
         costs = self.run_expenses()
         #self.env.process(self.calc_stats())
-        self.summarize(costs,daily_customers)
+        self.summarize(costs,daily_customers,self.entered_parties[party_index:party_index+daily_customers])
         daily_customers = 0
+        party_index += daily_customers
         #self.restaurant_rating = min(0,2)
         #self.restaurant_rating = np.mean(self.satisfaction_scores)
         #day = self.env.m_current_time().format("ddd MMM D")
@@ -275,10 +277,14 @@ class Restaurant:
       self.restaurant_rating = np.mean(self.satisfaction_scores)
 
  
-  def summarize(self,costs,volume):
+  def summarize(self,costs,volume,parties):
     day = self.env.m_current_time().format("ddd MMM D")
+
+    noise = np.sum([p.size*p.noisiness for p in parties])/volume
+    total_bills = np.sum([p.paid_check for p in parties])
+    satisfaction = np.mean([p.satisfaction for p in parties])
     self.env.ledger.print("Summary for {}: satisfaction: {}".format(day,self.restaurant_rating))
-    self.day_log.put({"expenses":costs,"noise":self.restaurant_rating,"num_entered":volume})
+    self.day_log.put({"expenses":costs,"noise":self.restaurant_rating,"num_entered":volume, "noise": noise, "revenue":total_bills, "satisfaction": satisfaction})
 
 
   def final_report(self):
