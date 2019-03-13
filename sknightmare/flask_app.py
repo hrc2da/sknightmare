@@ -11,9 +11,9 @@ socketio = SocketIO(app)
 
 
 class RestaurantDayQueue(Queue):
-    def put(self, item, block=True, timeout=None):
+    def put(self, report, block=True, timeout=None):
         
-        emit('day_report',item)
+        emit('day_report',json.dumps(report))
         print(item)
         super().put(item, block, timeout)
 

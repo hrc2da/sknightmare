@@ -274,7 +274,7 @@ class Restaurant:
   def summarize(self):
     day = self.env.m_current_time().format("ddd MMM D")
     self.env.ledger.print("Summary for {}: satisfaction: {}".format(day,self.restaurant_rating))
-    self.day_log.put(self.restaurant_rating)
+    self.day_log.put({"noise":self.restaurant_rating})
   def final_report(self):
     stringbuilder = ""
     stringbuilder += "*"*80+"\n"
