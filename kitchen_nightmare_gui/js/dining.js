@@ -102,7 +102,7 @@ class DiningRoom {
             table_repr['cost'] = table['data']['attributes'].cost;
             table_repr['daily_upkeep'] = table['data']['attributes'].daily_upkeep;
             table_repr['name'] = table['data'].name;
-            table_repr['attributes'] = table['data'].attributes;
+            table_repr['attributes'] = Object.assign({}, table['data'].attributes);
             table_repr['attributes']['x'] = table_repr['x']
             table_repr['attributes']['y'] = table_repr['y']
             table_layout.push(table_repr);
