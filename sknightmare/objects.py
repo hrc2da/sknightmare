@@ -120,7 +120,7 @@ class Party:
     self.max_wait_time = 60
     self.table = None
     self.perceived_noisiness = 0.0
-    self.satisfaction = 0
+    self.satisfaction = self.mood
     self.env.ledger.print("Welcoming Party {} of size {}.".format(self.name,self.size))
     
   def parse_attributes(self, attributes):
@@ -133,6 +133,7 @@ class Party:
     self.patience = attributes["patience"]
     self.noise_tolerance = attributes["noise_tolerance"]
     self.space_tolerance = attributes["space_tolerance"]
+    self.mood = attributes["mood"]
     self.max_budget = 100 # how much the richest of the rich can/would pay for a meal
     
   def wait_for_table(self, seating):
@@ -186,7 +187,7 @@ class Party:
         if t.party != self and t.party != None:
           try:
             sqrdist = (t.x - self.table.x)**2 + (t.y-self.table.y)**2
-            noise += 10*t.party.noisiness*t.party.size/np.sqrt(sqrdist)
+            noise += 1*t.party.noisiness*t.party.size/sqrdist
           except AttributeError as e:
             self.env.ledger.print("Table left while checking for noise")
             return
