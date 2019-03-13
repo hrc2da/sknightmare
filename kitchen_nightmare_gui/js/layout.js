@@ -222,7 +222,6 @@ function setupRestaurant(w, h) {
 }
 
 function setupViz(id, w, h) {
-    let num_metrics = 4;
     let padding = 10
     let svg = d3.select(id).append('svg').attrs({
         x: 0,
@@ -231,7 +230,9 @@ function setupViz(id, w, h) {
         height: h,
         id: 'graph_svg'
     });
-    let noise_graph = new NoiseGraph(svg, 0, 0, w - padding, h / num_metrics);
-    noise_graph.load_graph();
+
+    let viz = new Viz(svg, 0, 0, w - padding, h);
+    viz.initialize();
+    return viz;
 
 }
