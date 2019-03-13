@@ -14,8 +14,8 @@ class RestaurantDayQueue(Queue):
     def put(self, report, block=True, timeout=None):
         
         emit('day_report',json.dumps(report))
-        print(item)
-        super().put(item, block, timeout)
+        print(report)
+        super().put(report, block, timeout)
 
 
 @app.route('/simulate', methods=['POST'])
