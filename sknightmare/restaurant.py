@@ -284,7 +284,7 @@ class Restaurant:
     total_bills = np.sum([p.paid_check for p in parties])
     satisfaction = np.mean([p.satisfaction for p in parties])
     self.env.ledger.print("Summary for {}: satisfaction: {}".format(day,self.restaurant_rating))
-    self.day_log.put({"expenses":costs,"noise":self.restaurant_rating,"num_entered":volume, "noise": noise, "revenue":total_bills, "satisfaction": satisfaction})
+    self.day_log.put({"expenses":costs,"rating":self.restaurant_rating,"num_entered":volume, "noise": noise, "revenue":total_bills, "satisfaction": satisfaction})
 
 
   def final_report(self):
