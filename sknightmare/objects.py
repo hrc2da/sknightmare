@@ -55,7 +55,7 @@ class DayReport:
     
   def get_avg_wait_time(self):
     if len(self.parties) > 0:
-      wait_times = [p.wait_time for p in self.parties]) # currently including parties that left before being seated
+      wait_times = [p.wait_time for p in self.parties] # currently including parties that left before being seated
       return np.mean(wait_times), np.std(wait_times)
     else:
       return 0
@@ -67,6 +67,7 @@ class DayReport:
     # this should return a dictionary
     if status == None:
       # aggregate over everyone
+      return
     elif status == "paid":
       return 
 
