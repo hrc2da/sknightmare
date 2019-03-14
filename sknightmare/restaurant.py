@@ -194,7 +194,7 @@ class Restaurant:
       Randomly generate a party
     '''
     self.env.ledger.print("Time is: {} from {}".format(self.current_time().format("HH:mm:ss"),self.env.now))
-    
+    entered_parties = []
     num_entered = 0
     parties = np.clip(np.random.multivariate_normal(self.demographic_means,self.demographic_cov,n),0.01,1)
     num_generated = len(parties)
@@ -212,11 +212,12 @@ class Restaurant:
         #self.entered_parties.append(party)
         p = Party(self.env,self.rw().capitalize(),party_attributes)
         self.entered_parties.append(p)
-        self.env.process(self.handle_party(p))
+        entered_parties.append(p)
+        #self.env.process(self.handle_party(p))
       else:
         continue
     self.env.ledger.print("Total groups generated: {}, total entered: {}".format(num_generated, num_entered))   
-    return num_entered
+    return entered_parties
   
   def decide_entry(self,party_attributes):
     if(party_attributes["size"] > self.max_table_size):
@@ -250,8 +251,10 @@ class Restaurant:
         #day = self.env.m_current_time().format("ddd MMM D")
         #print("Summary for {}: satisfaction: {}".format(day,self.restaurant_rating))
       # generate 0+ parties based on the time of day & popularity of the restaurant
-      daily_customers +=  self.generate_parties(self.sample_num_parties())     
-      
+      entering_parties =  self.generate_parties(self.sample_num_parties())
+      daily_customers += len(entering_parties) 
+      for p in entering_parties:    
+        self.env.process(self.handle_party(p))
         
   def simulate(self,seconds=None,days=None):
     if seconds:
