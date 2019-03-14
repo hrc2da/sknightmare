@@ -15,61 +15,63 @@ class Restaurant:
     tables is a list of Tables
 
   '''
+  waiting_list_max = 20
+  menu_items = [
+    {
+        "name": "Simple Pizza",
+        "price": 5.0,
+        "requirements": ["pizza"],
+        "difficulty": 0.1,
+        "cost": 4.0
+    },
+    {
+        "name": "Intermediate Pizza",
+        "price": 10.0,
+        "requirements": ["pizza"],
+        "difficulty": 0.5,
+        "cost": 5.0
+    },
+    {
+        "name": "Excessive Pizza",
+        "price": 50.0,
+        "requirements": ["pizza"],
+        "difficulty": 0.9,
+        "cost": 15
+    }
+  ]
   def __init__(self, name, equipment, tables, start_time='2019-01-01T00:00:00', day_log = None):
     self.env = simpy.Environment()
     self.ledger = Ledger(verbose=False,save_messages=True)
     self.env.ledger = self.ledger
-    self.env.day = 0
+    self.env.day = 0 # just a counter for the number of days
     self.name = name
+
+    # queue for reporting the days internally or externally (if day_log is an rdq, see flask_app for more details)
     if day_log:
       self.day_log = day_log
     else:
       self.day_log = queue.Queue()
-    self.menu_items = [
-      {
-          "name": "Simple Pizza",
-          "price": 5.0,
-          "requirements": ["pizza"],
-          "difficulty": 0.1,
-          "cost": 4.0
-      },
-      {
-          "name": "Intermediate Pizza",
-          "price": 10.0,
-          "requirements": ["pizza"],
-          "difficulty": 0.5,
-          "cost": 5.0
-      },
-      {
-          "name": "Excessive Pizza",
-          "price": 50.0,
-          "requirements": ["pizza"],
-          "difficulty": 0.9,
-          "cost": 15
-      }
-    ]
 
+    # sim mechanics
     self.setup_neighborhood()
     self.setup_kitchen(equipment)
     self.setup_seating(tables)
+
+    # tools
     self.name_generator = RandomWords()
+    self.start_time = arrow.get(start_time) # this doesn't really matter unless we start considering seasons etc.
+    self.monkey_patch_env()
+
+    # stats
     self.satisfaction_scores = []
     self.restaurant_rating = 1 #score between 0 and 1
     self.checks = []
-    self.waiting_list_max = 20
-    self.start_time = arrow.get(start_time) # this doesn't really matter unless we start considering seasons etc.
-    self.monkey_patch_env()
     self.generated_parties = []
     self.entered_parties = []
     self.seated_parties = []
     self.order_log = []
     self.daily_costs = []
     self.closing_order = 0
-    #let's place an order for fun
-#     orders = [Order(env,"Dusfrene Party of Two",None,None),
-#               Order(env,"Bush Party of Three",None,None)]
-#     print("Serving tables...")
-#     placed_orders = [env.process(o.placewhere o.day == self.env.today_order(self.kitchen)) for o in orders]
     self.env.process(self.simulation_loop())
 
   def setup_kitchen(self, equipment):

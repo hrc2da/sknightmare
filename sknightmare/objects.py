@@ -7,6 +7,71 @@ from random_words import RandomWords
 import arrow # for nicer datetimes
 import math
 
+class DayReport:
+  def __init__(self):
+  
+    # for each day:
+    # parties enter and wait
+    # some are seated, some leave
+    # the seated ones place orders
+    # they experience noise from other diners and service from the staff
+    # they wait some time for their food and then receive it at some quality
+    # they eat the food
+    # they pay/tip and leave
+    #
+    # things I want to track:
+    # characteristics of each party that enters (maybe also of those that don't?)
+    # for each party that is seated:
+    # attributes of the party
+    # where they sat
+    # what they ordered
+    # what cooked it
+    # how long they waited
+    # how good the food was
+    # how happy they were with it
+    # how long they ate for
+    # how much they tipped and paid
+
+    # party aggregates:
+    # total revenue
+    # total tips
+    # how much at what time of day?
+    # how happy everyone was
+    # how many parties there were
+    # how many people there were
+    # how much of each item was ordered and how good each was
+    # how much people tipped
+    # how long parties waited for a table and food (including leavers)
+    # how long they ate for on average
+    # how much noise the restaurant experienced on average
+
+    # table stuff
+    # how much traffic each table gets in the day
+    # how much noise each table gets on avg
+    # how happy people are at each table on avg
+
+    # over the course of the day, let's add each party that enters to this list
+    self.parties = [] # lets say that parties can have a status of paid, left_waiting, left_ordered, left_served, or eating
+    
+  def get_avg_wait_time(self):
+    if len(self.parties) > 0:
+      wait_times = [p.wait_time for p in self.parties]) # currently including parties that left before being seated
+      return np.mean(wait_times), np.std(wait_times)
+    else:
+      return 0
+  def get_total_revenue(self):
+    if len(self.parties) > 0:
+      return np.sum(p.paid_check for p in self.parties if p.status == "paid")
+
+  def get_demographics(self, status=None):
+    # this should return a dictionary
+    if status == None:
+      # aggregate over everyone
+    elif status == "paid":
+      return 
+
+
+
 class Ledger:
   def __init__(self,verbose=True,save_messages=True):
     self.messages = []
