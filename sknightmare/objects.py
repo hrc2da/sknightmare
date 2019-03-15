@@ -6,8 +6,10 @@ seed(10)
 from random_words import RandomWords
 import arrow # for nicer datetimes
 import math
+import queue
+from copy import deepcopy, copy
 
-class DayReport:
+class RestaurantDay:
   def __init__(self):
   
     # for each day:
@@ -74,23 +76,40 @@ class DayReport:
 
 
 class Ledger:
-  def __init__(self,verbose=True,save_messages=True):
+  def __init__(self,verbose=True,save_messages=True, rdq = None):
+    if not rdq:
+      self.day_log = queue.Queue()
+    else: 
+      self.day_log = rdq
     self.messages = []
     self.verbose = verbose
     self.save_messages = save_messages
     self.num_days = 0
-    self.days = []
+    self.parties = []
+    self.tables = []
+    
   def print(self,message):
     if self.verbose:
       print(message)
     if self.save_messages:
       self.messages.append(message)
+
   def read_messages(self):
     for m in self.messages:
       print(m)
-  def record_day(self):
+      
+  def record_day(self,day):
     self.num_days += 1
-    
+    self.day_log.append(day)
+
+  def record_current_day(self):
+    self.day_log.append(RestaurantDay(self.parties,self.tables))
+    self.num_days += 1
+    self.reset_day()
+
+  def reset_day(self):
+    self.parties = []
+    self.tables = []
 
 class Order:
   def __init__(self, env, name, party, table):
