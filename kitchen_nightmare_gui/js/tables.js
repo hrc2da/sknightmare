@@ -1,5 +1,5 @@
 class Table {
-    constructor(type, name, seats, size, cost, upkeep, x, y) {
+    constructor(type, name, seats, size, cost, upkeep, x, y, path) {
         this.type = type;
         this.name = name;
         this.seats = seats;
@@ -8,6 +8,7 @@ class Table {
         this.daily_upkeep = upkeep;
         this.x_original = x;
         this.y_original = y;
+        this.path = path;
         this.attributes = {
             "type": this.type,
             "seats": this.seats,
@@ -30,7 +31,7 @@ class Table {
             'attributes': this.attributes
 
         }];
-        if (svg_type == 'rect') {
+        if (svg_type == 'image') {
             let shape_attrs = {
                 x: function (d) {
                     return d.x - d.size;
@@ -38,6 +39,7 @@ class Table {
                 y: function (d) {
                     return d.y - d.size;
                 },
+                "xlink:href": this.path,
                 width: this.size * 2,
                 height: this.size * 2,
             };
