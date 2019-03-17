@@ -42,6 +42,7 @@ class Restaurant:
   ]
   def __init__(self, name, equipment, tables, start_time='2019-01-01T00:00:00', day_log = None):
     self.env = simpy.Environment()
+    self.env.rent = 100
     self.ledger = Ledger(self.env, self.menu_items,verbose=False,save_messages=True)
     self.env.ledger = self.ledger
     self.env.day = 0 # just a counter for the number of days
@@ -79,19 +80,20 @@ class Restaurant:
   def setup_constants(self):
     self.env.max_budget = 100
     self.env.max_wait_time = 60
+    self.env.max_noise_db = 10
 
   def setup_kitchen(self, equipment):
     self.kitchen = simpy.FilterStore(self.env, capacity=len(equipment))
     self.kitchen.items = [Appliance(self.env,e["name"],e["attributes"]) for e in equipment]
     self.menu_items = [m for m in self.menu_items if any(all(req in appliance.capabilities for req in m["requirements"]) for appliance in self.kitchen.items)]
     self.env.ledger.print("Menu: {}".format(self.menu_items))
-    self.env.ledger.appliances = [a for a in self.kitchen.items]
+    self.env.ledger.set_appliances( [a for a in self.kitchen.items] )
 
   def setup_seating(self, tables):
     self.seating = simpy.FilterStore(self.env, capacity=len(tables))
     self.seating.items = [Table(self.env,t["name"],t["attributes"]) for t in tables]
     self.max_table_size = max([t.seats for t in self.seating.items])
-    self.env.ledger.tables = [t for t in self.seating.items]
+    self.env.ledger.set_tables( [t for t in self.seating.items] )
     for t in self.env.ledger.tables:
       t.start_simulation()
   
@@ -121,6 +123,7 @@ class Restaurant:
                                       [-0.004,-0.014, 0.0,   0.006,-0.012, 0.012, 0.018, 0.05, 0.00],
                                       [0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.05]
                                       ])
+
 
   def current_time(self):
     # let's assume the time step is seconds
@@ -227,7 +230,7 @@ class Restaurant:
         self.env.day += 1
         self.ledger.record_current_day()
         self.calc_stats()
-        #costs = self.run_expenses()
+        #costs = self.run_expenses()time_waited = 0
         #self.env.process(self.calc_stats())
         #self.summarize(costs,daily_customers,self.entered_parties[party_index:party_index+daily_customers])
         daily_customers = 0

@@ -24,6 +24,8 @@ class RestaurantDay:
         self.zagat_rating, self.zagat_count = self.get_rating("zagat", self.menu_stats)
         self.michelin_rating, self.michelin_count = self.get_rating("michelin", self.menu_stats)
         self.satisfaction = self.get_avg_satisfaction()[0]
+        self.expenses = self.get_food_cost() + self.get_seating_cost(tables) + \
+            self.get_equipment_cost(self.env.ledger.appliances) + self.env.rent
 
     def get_parties(self, table):
         return [p for p in self.parties if p.status >= PartyStatus.SEATED and p.table.name == table.name]
@@ -94,10 +96,29 @@ class RestaurantDay:
 
         # over the course of the day, let's add each party that enters to this list
         # self.parties = []  # lets say that parties can have a status of paid, left_waiting, left_ordered, left_served, or eating
+    def get_food_cost(self):
+        total_cost = 0
+        if len(self.parties) > 0:
+            for p in self.parties:
+                if p.status >= PartyStatus.ORDERED:
+                    total_cost += p.order.total_cost
+        return total_cost
+
+    def get_seating_cost(self, tables):
+        cost = 0
+        for t in tables:
+            cost += t.daily_upkeep
+        return cost
+
+    def get_equipment_cost(self, appliances):
+        cost = 0
+        for a in appliances:
+            cost += a.daily_upkeep
+        return cost
 
     def get_avg_wait_time(self):
         if len(self.parties) > 0:
-            # currently including parties that left before being seated
+                    # currently including parties that left before being seated
             wait_times = [p.seating_wait.total_seconds()/60.0 for p in self.parties]
             return np.mean(wait_times), np.std(wait_times)
         else:
@@ -194,7 +215,8 @@ class RestaurantDay:
             'paid_party_size':  np.mean([p.size for p in self.parties if p.status >= PartyStatus.PAID]),
             'wait_time': self.get_avg_wait_time(),
             'cook_time': self.get_avg_total_cook_time(),
-            'food_stats': self.get_menu_stats()
+            'food_stats': self.get_menu_stats(),
+            'expenses': self.expenses
         }
 
 
@@ -211,8 +233,29 @@ class Ledger:
         self.save_messages = save_messages
         self.num_days = 0
         self.parties = []  # these are the primary references
-        self.tables = []  # cleared every day
+        self.tables = []
+        self.appliances = []
+        self.setup_costs()
         self.setup_ratings()
+
+    def calculate_upfront_costs(self):
+        self.upfront_costs = 0
+        for t in self.tables:
+            self.upfront_costs += t.cost
+        for a in self.appliances:
+            self.upfront_costs += a.cost
+
+    def setup_costs(self):
+        self.upfront_costs = 0
+        self.daily_expenses = []
+
+    def set_appliances(self, appliances):
+        self.appliances = appliances
+        self.calculate_upfront_costs()
+
+    def set_tables(self, tables):
+        self.tables = tables
+        self.calculate_upfront_costs()
 
     def setup_ratings(self):
         self.yelp_rating = 1
@@ -296,6 +339,7 @@ class Ledger:
         cook_times, ct_stds = zip(*[d.get_avg_total_cook_time() for d in days])
         wait_times, wt_stds = zip(*[d.get_avg_wait_time() for d in days])
         satisfactions, s_stds = zip(*[d.get_avg_satisfaction() for d in days])
+        expenses = [d.expenses for d in days]
 
         report = {"revenue": revenue,
                   "cook_times": (np.mean(cook_times), np.std(cook_times)),
@@ -305,8 +349,13 @@ class Ledger:
                   "yelp_rating": self.yelp_rating,
                   "zagat_rating": self.zagat_rating,
                   "michelin_rating": self.michelin_rating,
-                  "satisfaction": self.satisfaction
+                  "satisfaction": self.satisfaction,
+                  "total_overhead": np.sum(expenses),
+                  "upfront_costs": self.upfront_costs
                   }
         for entry in report:
-            self.print("{}:{}".format(entry, report[entry]))
+            if self.verbose == True:
+                self.print("{}:{}".format(entry, report[entry]))
+            else:
+                print("{}:{}".format(entry, report[entry]))
         return report
