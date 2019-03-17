@@ -17,13 +17,16 @@ class RestaurantDayQueue(Queue):
         super().put(report, block, timeout)
 
 
-@app.route('/simulate', methods=['POST'])
-def simulate():
-    layout = request.get_json(force=True)
-    print(layout)
-    r = Restaurant("Sophie's Kitchen", layout["equipment"], layout["tables"])
-    r.simulate(days=int(layout["days"]))
-    return jsonify({"report": r.final_report()})
+@app.route('/', methods=['GET'])
+def hello():
+    return("Welcome to the SKNightmare!")
+# @app.route('/simulate', methods=['POST'])
+# def simulate():
+#     layout = request.get_json(force=True)
+#     print(layout)
+#     r = Restaurant("Sophie's Kitchen", layout["equipment"], layout["tables"])
+#     r.simulate(days=int(layout["days"]))
+#     return jsonify({"report": r.final_report()})
 
 
 @socketio.on('connect')
@@ -36,7 +39,7 @@ def handle_connect():
 def socket_simulate(restaurant):
     layout = json.loads(restaurant)
     rdq = RestaurantDayQueue()
-    r = Restaurant("Sophie's Kitchen", layout["equipment"], layout["tables"], day_log=rdq)
+    r = Restaurant("Sophie's Kitchen", layout["equipment"], layout["tables"], layout["staff"], day_log=rdq)
     r.simulate(days=int(layout["days"]))
     emit("sim_report", r.final_report())
 
