@@ -81,11 +81,14 @@ class Restaurant:
     self.menu_items = [m for m in self.menu_items if any(all(req in appliance.capabilities for req in m["requirements"]) for appliance in self.kitchen.items)]
     self.env.ledger.print("Menu: {}".format(self.menu_items))
     self.env.ledger.appliances = [a for a in self.kitchen.items]
+
   def setup_seating(self, tables):
     self.seating = simpy.FilterStore(self.env, capacity=len(tables))
     self.seating.items = [Table(self.env,t["name"],t["attributes"]) for t in tables]
     self.max_table_size = max([t.seats for t in self.seating.items])
     self.env.ledger.tables = [t for t in self.seating.items]
+    for t in self.env.ledger.tables:
+      t.start_simulation()
   
   def setup_neighborhood(self):
     self.max_party_size = 10

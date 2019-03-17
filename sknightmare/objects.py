@@ -111,8 +111,12 @@ class Table:
     self.perceived_crowding = []
     self.max_noise_db = 10
     self.parse_attributes(attributes)
-    self.calculate_distances()
+
   
+  def start_simulation(self):
+    self.calculate_distances()
+    self.env.process(self.update_stats())
+
   def parse_attributes(self, attributes):
     self.x = attributes["x"]
     self.y = attributes["y"]
@@ -142,9 +146,9 @@ class Table:
   def update_stats(self):
     while True: #tables never leave the restaurant
       self.update_generated_noise()
-      self.update_perceived_noise()
+      self.update_received_noise()
       self.update_crowding()
-      self.env.timeout(5*60) # 5 minutes timeout
+      yield self.env.timeout(5*60) # 5 minutes timeout
 
   def update_generated_noise(self):
     if self.party is not None:
@@ -158,8 +162,8 @@ class Table:
       if t != self:
         dist = self.distances[t.name]
         assert dist != 0
-        current_noise += t.get_generated_noise/dist
-    self.received_noise.append(noise)
+        current_noise += t.get_generated_noise()/dist
+    self.received_noise.append(current_noise)
 
   def update_crowding(self):
     # this goes up based on whether nearby tables are occupied or not
@@ -169,7 +173,7 @@ class Table:
         if t.party == None:
           occupancy = 0
         else:
-          occupancy = self.party.size
+          occupancy = t.party.size
         dist = self.distances[t.name]
         assert dist != 0
         crowding += occupancy/dist
@@ -184,8 +188,8 @@ class Table:
         print("Table names must be unique!")
         raise(e)
       if t != self:
-        sqrdist = np.linalg.norm(((t.x - self.table.x), (t.y-self.table.y)),2)
-        assert sqrdst > 0
+        sqrdist = np.linalg.norm(((t.x - self.x), (t.y-self.y)),2)
+        assert sqrdist > 0
         self.distances[t.name] = sqrdist
     
 class Party:
