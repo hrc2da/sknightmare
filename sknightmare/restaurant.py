@@ -34,7 +34,7 @@ class Restaurant:
     },
     {
         "name": "Excessive Pizza",
-        "price": 50.0,
+        "price": 60.0,
         "requirements": ["pizza"],
         "difficulty": 0.9,
         "cost": 15
@@ -42,10 +42,11 @@ class Restaurant:
   ]
   def __init__(self, name, equipment, tables, start_time='2019-01-01T00:00:00', day_log = None):
     self.env = simpy.Environment()
-    self.ledger = Ledger(self.menu_items,verbose=False,save_messages=True)
+    self.ledger = Ledger(self.env, self.menu_items,verbose=False,save_messages=True)
     self.env.ledger = self.ledger
     self.env.day = 0 # just a counter for the number of days
     self.name = name
+    self.setup_constants()
 
     # queue for reporting the days internally or externally (if day_log is an rdq, see flask_app for more details)
     if day_log:
@@ -75,6 +76,10 @@ class Restaurant:
     self.closing_order = 0
     self.env.process(self.simulation_loop())
 
+  def setup_constants(self):
+    self.env.max_budget = 100
+    self.env.max_wait_time = 60
+
   def setup_kitchen(self, equipment):
     self.kitchen = simpy.FilterStore(self.env, capacity=len(equipment))
     self.kitchen.items = [Appliance(self.env,e["name"],e["attributes"]) for e in equipment]
@@ -95,20 +100,20 @@ class Restaurant:
     self.neighborhood_size = 10000
     self.max_eating_pop = 0.1*self.neighborhood_size
     self.demographics = ["size","affluence","taste","noisiness","leisureliness","patience","noise_tolerance","space_tolerance", "mood"]
-    self.demographic_means = np.array([0.25,0.3,0.3,0.6,0.4,0.5,0.3,0.5, 0.5])
+    self.demographic_means = np.array([0.25,0.3,0.5,0.6,0.4,0.5,0.3,0.5, 0.5])
                                         # size aff taste  noi   leis  pat noi_t space_t
     # self.demographic_cov = np.matrix([[ 0.02, 0.00, 0.00, 0.09, 0.02,-0.02, 0.06,-0.02], #size
     #                                   [ 0.00, 0.02, 0.10,-0.02, 0.06,-0.07,-0.07,-0.07], #affluence
     #                                   [ 0.00, 0.10, 0.02,-0.02, 0.07,-0.01,-0.01, 0.0], #taste
     #                                   [ 0.09,-0.02,-0.02, 0.02, 0.01, 0.00, 0.08, 0.03], #noisiness
-    #                                   [ 0.02, 0.06, 0.07, 0.01, 0.02, 0.07,-0.06,-0.06], #leisureliness
-    #                                   [-0.02,-0.07,-0.01, 0.00, 0.07, 0.02, 0.07, 0.06], #patience
-    #                                   [ 0.06,-0.07,-0.01, 0.08,-0.06, 0.07, 0.02, 0.09], #noise tolerance
-    #                                   [-0.02,-0.07, 0.00, 0.03,-0.06, 0.06, 0.09, 0.02] #space toleranceseating.put(self.table)
+    #                             self.start_time.replace(seconds=self.env.now)      [ 0.02, 0.06, 0.07, 0.01, 0.02, 0.07,-0.06,-0.06], #leisureliness
+    #                             self.start_time.replace(seconds=self.env.now)      [-0.02,-0.07,-0.01, 0.00, 0.07, 0.02, 0.07, 0.06], #patience
+    #                             self.start_time.replace(seconds=self.env.now)      [ 0.06,-0.07,-0.01, 0.08,-0.06, 0.07, 0.02, 0.09], #noise tolerance
+    #                             self.start_time.replace(seconds=self.env.now)      [-0.02,-0.07, 0.00, 0.03,-0.06, 0.06, 0.09, 0.02] #space toleranceseating.put(self.table)
     #                                  ])  
     self.demographic_cov = np.matrix([[ 0.05,  0.0,   0.0,   0.018, 0.004,-0.004, 0.012,-0.004, 0.00],
-                                      [ 0.0,   0.05,  0.02, -0.004, 0.012,-0.014,-0.014,-0.014, 0.00],
-                                      [ 0.0,   0.02,  0.05, -0.004, 0.014,-0.002,-0.002, 0.0, 0.00  ],
+                                      [ 0.0,   0.05,  0.03, -0.004, 0.012,-0.014,-0.014,-0.014, 0.00],
+                                      [ 0.0,   0.03,  0.05, -0.004, 0.014,-0.002,-0.002, 0.0, 0.00  ],
                                       [ 0.018,-0.004,-0.004, 0.05,  0.002, 0.0,   0.016, 0.006, 0.00],
                                       [ 0.004, 0.012, 0.014, 0.002, 0.05,  0.014,-0.012,-0.012, 0.00],
                                       [-0.004,-0.014,-0.002, 0.0,   0.014, 0.05,  0.014, 0.012, 0.00],
@@ -194,9 +199,18 @@ class Restaurant:
   def decide_entry(self,party_attributes):
     if(party_attributes["size"] > self.max_table_size):
       return False
-    elif party_attributes["taste"] > self.restaurant_rating:
+    if party_attributes["mood"] < 1-self.env.ledger.satisfaction:
       return False
-    elif np.random.uniform(0,1) > 0.05:
+    if party_attributes["affluence"] < 0.3:
+      if party_attributes["taste"] > self.env.ledger.yelp_rating:
+        return False
+    if party_attributes["affluence"] >= 0.3 and party_attributes["affluence"] <= 0.7:
+      if party_attributes["taste"] > self.env.ledger.zagat_rating:
+        return False
+    if party_attributes["affluence"] > 0.7:
+      if party_attributes["taste"] > self.env.ledger.michelin_rating:
+        return False
+    if np.random.uniform(0,1) > 0.05:
       return False
     else:
        return True

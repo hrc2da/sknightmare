@@ -55,8 +55,8 @@ class Order:
 
   def choose_menu_item(self, menu):
       budget = self.party.affluence * self.party.max_budget
-      monetary_taste = self.party.taste * self.party.max_budget
-      price_point = (budget + monetary_taste)/2 + self.selection_noise()
+      #monetary_taste = self.party.taste * self.party.max_budget
+      price_point = budget #(budget + monetary_taste)/2 + self.selection_noise()
       return menu[np.argmin([np.abs(price_point-meal["price"]) for meal in menu])]
 
   def get_total_cook_time(self):
@@ -205,7 +205,7 @@ class Party:
     self.cum_noise = 0
     self.noise_counter = 0
     self.parse_attributes(attributes)
-    self.max_wait_time = 60
+    self.max_wait_time = self.env.max_wait_time
     self.table = None
     self.perceived_noisiness = 0.0
     self.satisfaction = self.mood
@@ -226,7 +226,7 @@ class Party:
     self.paid_check = 0
     self.satisfaction = self.mood
     self.tolerance_weights = {}
-    self.max_budget = 100 # how much the richest of the rich can/would pay for a meal
+    self.max_budget = self.env.max_budget # how much the richest of the rich can/would pay for a meal
     
   def wait_for_table(self, seating):
     start_time = self.env.m_current_time()
@@ -241,6 +241,7 @@ class Party:
 #     else:get
 #       print("Party {} is tired of waiting for a table.").format(self.name)
     with seating.get(lambda table: table.seats >= self.size) as req:
+      self.seating_wait = start_time.replace(seconds=waiting_patience_in_s)-start_time #in case we get interrupted
       res = yield req | self.env.timeout(waiting_patience_in_s)
       self.seating_wait = self.env.m_current_time() - start_time
       #print(res)

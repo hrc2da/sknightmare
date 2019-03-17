@@ -13,10 +13,17 @@ MealStats = namedtuple('MealStats', 'order cook_time quality')
 
 class RestaurantDay:
 
-    def __init__(self, parties, tables, menu):
+    def __init__(self, env, parties, tables, menu):
+        self.env = env
         self.parties = parties  # [self.parse_party(p) for p in parties]
         self.tables_stats = {t.name: self.parse_table(t) for t in tables}
         self.menu = menu
+        self.menu_dict = {m['name']: m for m in self.menu}
+        self.menu_stats = self.get_menu_stats()
+        self.yelp_rating, self.yelp_count = self.get_rating("yelp", self.menu_stats)
+        self.zagat_rating, self.zagat_count = self.get_rating("zagat", self.menu_stats)
+        self.michelin_rating, self.michelin_count = self.get_rating("michelin", self.menu_stats)
+        self.satisfaction = self.get_avg_satisfaction()[0]
 
     def get_parties(self, table):
         return [p for p in self.parties if p.status >= PartyStatus.SEATED and p.table.name == table.name]
@@ -27,6 +34,23 @@ class RestaurantDay:
 
     def parse_party(self, party):
         return PartyStats(party.satisfaction, None, party.perceived_noisiness, 0, 0, 0)
+
+    def get_rating(self, level, stats):
+        if level == "yelp":
+            tiered_items = {k: v for k, v in stats.items() if self.menu_dict[k]['price'] < 0.1*self.env.max_budget}
+        elif level == "zagat":
+            tiered_items = {k: v for k, v in stats.items(
+            ) if self.menu_dict[k]['price'] >= 0.1*self.env.max_budget and self.menu_dict[k]['price'] <= 0.5*self.env.max_budget}
+        else:
+            tiered_items = {k: v for k, v in stats.items() if self.menu_dict[k]['price'] > 0.5*self.env.max_budget}
+
+        volumes = [tiered_items[ti]["volume"] for ti in tiered_items]
+        qualities = [tiered_items[ti]["quality"] for ti in tiered_items]
+        if len(volumes) == 0:
+            return 0, 0
+        total_volume = np.sum(volumes)
+        mean_quality = np.mean(qualities)
+        return mean_quality, total_volume
 
         # for each day:
         # parties enter and wait
@@ -69,7 +93,7 @@ class RestaurantDay:
         # how happy people are at each table on avg
 
         # over the course of the day, let's add each party that enters to this list
-        self.parties = []  # lets say that parties can have a status of paid, left_waiting, left_ordered, left_served, or eating
+        # self.parties = []  # lets say that parties can have a status of paid, left_waiting, left_ordered, left_served, or eating
 
     def get_avg_wait_time(self):
         if len(self.parties) > 0:
@@ -80,9 +104,9 @@ class RestaurantDay:
             return 0, 0
 
     def get_avg_cook_time(self):
-        '''
-            get the mean of the total cook times for each party; this could be buggy right now if orders are incomplete
-        '''
+        '''moderate
+              get the mean of the total cook times for each party; this could be buggy right now if orders are incomplete
+          '''
         if len(self.parties) > 0:
             # currently including parties that left before being seated
             cook_times = [np.sum(p.order.cook_times).total_seconds()/60.0
@@ -175,11 +199,12 @@ class RestaurantDay:
 
 
 class Ledger:
-    def __init__(self, menu, verbose=True, save_messages=True, rdq=None):
+    def __init__(self, env, menu, verbose=True, save_messages=True, rdq=None):
         if not rdq:
             self.day_log = queue.Queue()
         else:
             self.day_log = rdq
+        self.env = env
         self.menu = menu
         self.messages = []
         self.verbose = verbose
@@ -187,6 +212,36 @@ class Ledger:
         self.num_days = 0
         self.parties = []  # these are the primary references
         self.tables = []  # cleared every day
+        self.setup_ratings()
+
+    def setup_ratings(self):
+        self.yelp_rating = 1
+        self.yelp_count = 1
+        self.zagat_rating = 1
+        self.zagat_count = 1
+        self.michelin_rating = 1
+        self.michelin_count = 1
+        self.satisfaction = 1
+        self.satisfaction_count = 0
+
+    def update_ratings(self, d):
+        if d.yelp_count > 0:
+            new_yc = self.yelp_count + d.yelp_count
+            self.yelp_rating = (self.yelp_rating*self.yelp_count + d.yelp_rating*d.yelp_count)/new_yc
+            self.yelp_count = new_yc
+        if d.zagat_count > 0:
+            new_zc = self.zagat_count + d.zagat_count
+            self.zagat_rating = (self.zagat_rating*self.zagat_count + d.zagat_rating*d.zagat_count)/new_zc
+            self.zagat_count = new_zc
+        if d.michelin_count > 0:
+            new_mc = self.michelin_count + d.michelin_count
+            self.michelin_rating = (self.michelin_rating*self.michelin_count +
+                                    d.michelin_rating*d.michelin_count)/new_mc
+            self.michelin_count = new_mc
+        if len(d.parties) > 0:
+            new_sc = self.satisfaction_count + len(d.parties)
+            self.satisfaction = (self.satisfaction*self.satisfaction_count + d.satisfaction*len(d.parties))/new_sc
+            self.satisfaction_count = new_sc
 
     def print(self, message):
         if self.verbose:
@@ -203,11 +258,12 @@ class Ledger:
         self.day_log.append(day)
 
     def record_current_day(self):
-        today = RestaurantDay(self.parties, self.tables, self.menu)
+        today = RestaurantDay(self.env, self.parties, self.tables, self.menu)
+        self.update_ratings(today)
         self.day_log.put(today)
-        print("********* Day: {} ************".format(self.num_days))
-        print(today.get_report())
-        print("\n")
+        self.print("********* Day: {} ************".format(self.num_days))
+        self.print(today.get_report())
+        self.print("\n")
         self.num_days += 1
         self.reset_day()
 
@@ -245,8 +301,12 @@ class Ledger:
                   "cook_times": (np.mean(cook_times), np.std(cook_times)),
                   "wait_times": (np.mean(wait_times), np.std(wait_times)),
                   "satisfaction": (np.mean(satisfactions), np.std(satisfactions)),
-                  "menu_stats": self.get_menu_stats()
+                  "menu_stats": self.get_menu_stats(),
+                  "yelp_rating": self.yelp_rating,
+                  "zagat_rating": self.zagat_rating,
+                  "michelin_rating": self.michelin_rating,
+                  "satisfaction": self.satisfaction
                   }
         for entry in report:
-            print("{}:{}".format(entry, report[entry]))
+            self.print("{}:{}".format(entry, report[entry]))
         return report
