@@ -9,107 +9,8 @@ import math
 import queue
 from copy import deepcopy, copy
 
-class RestaurantDay:
-  def __init__(self):
-  
-    # for each day:
-    # parties enter and wait
-    # some are seated, some leave
-    # the seated ones place orders
-    # they experience noise from other diners and service from the staff
-    # they wait some time for their food and then receive it at some quality
-    # they eat the food
-    # they pay/tip and leave
-    #
-    # things I want to track:
-    # characteristics of each party that enters (maybe also of those that don't?)
-    # for each party that is seated:
-    # attributes of the party
-    # where they sat
-    # what they ordered
-    # what cooked it
-    # how long they waited
-    # how good the food was
-    # how happy they were with it
-    # how long they ate for
-    # how much they tipped and paid
 
-    # party aggregates:
-    # total revenue
-    # total tips
-    # how much at what time of day?
-    # how happy everyone was
-    # how many parties there were
-    # how many people there were
-    # how much of each item was ordered and how good each was
-    # how much people tipped
-    # how long parties waited for a table and food (including leavers)
-    # how long they ate for on average
-    # how much noise the restaurant experienced on average
-
-    # table stuff
-    # how much traffic each table gets in the day
-    # how much noise each table gets on avg
-    # how happy people are at each table on avg
-
-    # over the course of the day, let's add each party that enters to this list
-    self.parties = [] # lets say that parties can have a status of paid, left_waiting, left_ordered, left_served, or eating
-    
-  def get_avg_wait_time(self):
-    if len(self.parties) > 0:
-      wait_times = [p.wait_time for p in self.parties] # currently including parties that left before being seated
-      return np.mean(wait_times), np.std(wait_times)
-    else:
-      return 0
-  def get_total_revenue(self):
-    if len(self.parties) > 0:
-      return np.sum(p.paid_check for p in self.parties if p.status == "paid")
-
-  def get_demographics(self, status=None):
-    # this should return a dictionary
-    if status == None:
-      # aggregate over everyone
-      return
-    elif status == "paid":
-      return 
-
-
-
-class Ledger:
-  def __init__(self,verbose=True,save_messages=True, rdq = None):
-    if not rdq:
-      self.day_log = queue.Queue()
-    else: 
-      self.day_log = rdq
-    self.messages = []
-    self.verbose = verbose
-    self.save_messages = save_messages
-    self.num_days = 0
-    self.parties = []
-    self.tables = []
-    
-  def print(self,message):
-    if self.verbose:
-      print(message)
-    if self.save_messages:
-      self.messages.append(message)
-
-  def read_messages(self):
-    for m in self.messages:
-      print(m)
-      
-  def record_day(self,day):
-    self.num_days += 1
-    self.day_log.append(day)
-
-  def record_current_day(self):
-    self.day_log.append(RestaurantDay(self.parties,self.tables))
-    self.num_days += 1
-    self.reset_day()
-
-  def reset_day(self):
-    self.parties = []
-    self.tables = []
+from records import TableStats, PartyStats, PartyStatus, MealStats
 
 class Order:
   def __init__(self, env, name, party, table):
@@ -121,31 +22,55 @@ class Order:
     self.status = "placed"
     self.equipment_type = "oven"
     self.bill = 0
-    self.satisfactions = []
+    self.qualities = []
     self.cook_times = []
     self.total_cost = 0
+    self.meals = []
+    self.total_cook_time = None
+
   def place_order(self, kitchen, menu):
     self.env.ledger.print("{}: Placing order of size {} for {}".format(self.env.m_current_time().format("HH:mm:ss"),self.party.size,self.party.name))
+    self.order_start_time = self.env.m_current_time()
     for diner in range(self.party.size):
         # choose a menu item
         meal_order = self.choose_menu_item(menu)
+        self.meals.append(meal_order)
         self.bill += meal_order["price"]
         self.total_cost += meal_order["cost"]
         # submit the order
         appliance = yield kitchen.get(lambda appliance: all(req in appliance.capabilities for req in meal_order["requirements"]))
         self.status = "cooking"
+        start_time = self.env.m_current_time()
         yield self.env.process(appliance.cook(self,meal_order))
         #yield self.env.timeout(4)
+        cook_time = self.env.m_current_time()-start_time
         self.env.ledger.print("Order {}/{} of {} for {} cooked in time {:.2f} with quality {:.2f}.".format(diner+1, self.party.size, meal_order["name"], self.party.name, self.cook_time, self.quality))
-        self.satisfactions.append(self.quality)
-        self.cook_times.append(self.cook_time)
+        self.qualities.append(self.quality)
+        self.cook_times.append(cook_time)
         yield kitchen.put(appliance)
-  
+    order_end_time = self.env.m_current_time()
+    self.total_cook_time = order_end_time - self.order_start_time
+  def selection_noise(self):
+    return np.random.normal(0,10)
+
   def choose_menu_item(self, menu):
       budget = self.party.affluence * self.party.max_budget
       monetary_taste = self.party.taste * self.party.max_budget
-      price_point = (budget + monetary_taste)/2
+      price_point = (budget + monetary_taste)/2 + self.selection_noise()
       return menu[np.argmin([np.abs(price_point-meal["price"]) for meal in menu])]
+
+  def get_total_cook_time(self):
+    if self.total_cook_time == None:
+      return self.env.m_current_time() - self.order_start_time
+    else:
+      return self.total_cook_time
+
+  def get_completed_meals(self):
+    completed_meals = []
+    for i in range(len(self.qualities)):  
+      completed_meals.append(MealStats(self.meals[i],self.cook_times[i],self.qualities[i]))
+    return completed_meals
+
 
 class Appliance:
   def __init__(self,env, name, attributes):
@@ -170,6 +95,7 @@ class Appliance:
     self.daily_upkeep = attributes["daily_upkeep"]
     self.cost = attributes["cost"]
 
+
 class Table:
   '''
     Tables are resources that can be filled by parties
@@ -178,8 +104,14 @@ class Table:
     self.env = env
     self.name = name
     self.party = None # a party object
+    self.parties = []
     self.status = "empty"
+    self.generated_noise = []
+    self.received_noise = []
+    self.perceived_crowding = []
+    self.max_noise_db = 10
     self.parse_attributes(attributes)
+    self.calculate_distances()
   
   def parse_attributes(self, attributes):
     self.x = attributes["x"]
@@ -189,6 +121,73 @@ class Table:
     self.daily_upkeep = attributes["daily_upkeep"]
     self.cost = attributes["cost"]
 
+  def get_generated_noise(self, index = None):
+    if len(self.generated_noise) == 0:
+      return 0.0
+    elif index != None:
+      assert len(self.generated_noise) >= index
+      return self.generated_noise[index]
+    else:
+      return self.generated_noise[-1]
+
+  def get_received_noise(self, index = None):
+    if len(self.received_noise) == 0:
+      return 0.0
+    elif index != None:
+      assert len(self.received_noise) >= index
+      return self.received_noise[index]
+    else:
+      return self.received_noise[-1]
+
+  def update_stats(self):
+    while True: #tables never leave the restaurant
+      self.update_generated_noise()
+      self.update_perceived_noise()
+      self.update_crowding()
+      self.env.timeout(5*60) # 5 minutes timeout
+
+  def update_generated_noise(self):
+    if self.party is not None:
+      self.generated_noise.append(self.max_noise_db*self.party.noisiness*self.party.size)
+    else:
+      self.generated_noise.append(0)
+
+  def update_received_noise(self):
+    current_noise = 0
+    for t in self.env.ledger.tables:
+      if t != self:
+        dist = self.distances[t.name]
+        assert dist != 0
+        current_noise += t.get_generated_noise/dist
+    self.received_noise.append(noise)
+
+  def update_crowding(self):
+    # this goes up based on whether nearby tables are occupied or not
+    crowding = 0
+    for t in self.env.ledger.tables:
+      if t != self:
+        if t.party == None:
+          occupancy = 0
+        else:
+          occupancy = self.party.size
+        dist = self.distances[t.name]
+        assert dist != 0
+        crowding += occupancy/dist
+    self.perceived_crowding.append(crowding)
+
+  def calculate_distances(self):
+    self.distances = {}
+    for t in self.env.ledger.tables:
+      try:
+        assert t.name not in self.distances
+      except AssertionError as e:
+        print("Table names must be unique!")
+        raise(e)
+      if t != self:
+        sqrdist = np.linalg.norm(((t.x - self.table.x), (t.y-self.table.y)),2)
+        assert sqrdst > 0
+        self.distances[t.name] = sqrdist
+    
 class Party:
   '''
     Parties are generated and wait in a queue to be seated
@@ -207,6 +206,7 @@ class Party:
     self.perceived_noisiness = 0.0
     self.satisfaction = self.mood
     self.env.ledger.print("Welcoming Party {} of size {}.".format(self.name,self.size))
+    self.status = PartyStatus.ENTERED
     
   def parse_attributes(self, attributes):
     #  ["size","affluence","taste","noisinesself.table.party = selfss","patience","noise_tolerance","space_tolerance"]
@@ -243,50 +243,49 @@ class Party:
       if(req in res):
         self.table = res[req]
         self.table.party = self
+        self.table.parties.append(self)
         self.env.ledger.print("Party {} is seated at {} after waiting for {}".format(self.name,self.table.name,self.seating_wait))
+        self.status = PartyStatus.SEATED
         return True
       else:
         self.env.ledger.print("Party {} with patience rating {} is tired of waiting for a table after waiting for {}.".format(self.name,self.patience,self.seating_wait))
         return False
-  def eat(self,order):
+
+  def place_order(self,kitchen,menu):
+    self.order = Order(self.env,self.env.m_rw(),self,self.table)
+    self.env.ledger.print("Ordering")
+    yield self.env.process(self.order.place_order(kitchen,menu))
+
+  def eat(self):
+    start_time = self.env.m_current_time()
     self.env.ledger.print("Party {} is eating".format(self.name))
+    self.status = PartyStatus.EATING
     # self.satisfaction += np.mean(order.satisfactions) #should consider wait time here as well
-    self.bill = order.bill
+    self.bill = self.order.bill
     yield self.env.timeout(10*60*self.size)
+    self.eating_time = self.env.m_current_time()-start_time
   
   def leave(self, seating):
     self.paid_check = 0
     self.satisfaction = max(0,self.satisfaction)
     self.env.ledger.print("Party {} has left".format(self.name))
     if self.table:
+      self.status = PartyStatus.PAID
       self.table.party = None
       subtotal = self.bill
       tip = max(self.satisfaction,0)*0.3*subtotal
       self.paid_check = subtotal + tip
       yield seating.put(self.table)
-      self.table = None
+      #self.table = None
       self.env.ledger.print("Party {} is paying {} with tip {} with sat {}".format(self.name,self.paid_check,tip,max(self.satisfaction,0)))
     return self.paid_check, self.satisfaction
 
 
   def update_satisfaction(self, tables):
-    while self.table != None:
-      noise = 0.0
-      for t in tables:
-        if t.party != self and t.party != None:
-          try:
-            sqrdist = (t.x - self.table.x)**2 + (t.y-self.table.y)**2
-            noise += 2*t.party.noisiness*t.party.size/sqrdist
-            if sqrdist == 0:
-              print("Table Party {}, {}, {}".format(self.table.party.name, self.name, t.party.name))
-              print("Self Table name {} X:{} Y:{}".format(self.table.name, self.table.x, self.table.y))
-              print("Self Table name {} X:{} Y:{}".format(t.name, t.x, t.y))
-          except AttributeError as e:
-            self.env.ledger.print("Table left while checking for noise")
-            return
-      self.perceived_noisiness = noise
+    while self.status >= PartyStatus.SEATED and self.status < PartyStatus.PAID: # do this for as long as we're seated
+      self.perceived_noisiness = self.table.get_received_noise()
       self.satisfaction = self.mood - (1-self.noise_tolerance)*self.perceived_noisiness
-      yield self.env.timeout(300)
+      yield self.env.timeout(5*60) # 5 minute loop
 
 
 

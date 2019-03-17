@@ -7,7 +7,8 @@ from random_words import RandomWords
 import arrow # for nicer datetimes
 import math
 import queue
-from objects import Party, Table, Order, Appliance, Ledger
+from objects import Party, Table, Order, Appliance
+from records import Ledger
 
 class Restaurant:
   '''
@@ -41,7 +42,7 @@ class Restaurant:
   ]
   def __init__(self, name, equipment, tables, start_time='2019-01-01T00:00:00', day_log = None):
     self.env = simpy.Environment()
-    self.ledger = Ledger(verbose=False,save_messages=True)
+    self.ledger = Ledger(self.menu_items,verbose=False,save_messages=True)
     self.env.ledger = self.ledger
     self.env.day = 0 # just a counter for the number of days
     self.name = name
@@ -79,12 +80,12 @@ class Restaurant:
     self.kitchen.items = [Appliance(self.env,e["name"],e["attributes"]) for e in equipment]
     self.menu_items = [m for m in self.menu_items if any(all(req in appliance.capabilities for req in m["requirements"]) for appliance in self.kitchen.items)]
     self.env.ledger.print("Menu: {}".format(self.menu_items))
-    self.appliances = [a for a in self.kitchen.items]
+    self.env.ledger.appliances = [a for a in self.kitchen.items]
   def setup_seating(self, tables):
     self.seating = simpy.FilterStore(self.env, capacity=len(tables))
     self.seating.items = [Table(self.env,t["name"],t["attributes"]) for t in tables]
     self.max_table_size = max([t.seats for t in self.seating.items])
-    self.tables = [t for t in self.seating.items]
+    self.env.ledger.tables = [t for t in self.seating.items]
   
   def setup_neighborhood(self):
     self.max_party_size = 10
@@ -120,6 +121,7 @@ class Restaurant:
   def monkey_patch_env(self):
     self.env.m_start_time = self.start_time
     self.env.m_current_time = self.current_time
+    self.env.m_rw = self.rw
   
   def rw(self):
     return self.name_generator.random_word()
@@ -130,11 +132,12 @@ class Restaurant:
       check,satisfaction = yield self.env.process(party.leave(self.seating))
     else:
       self.seated_parties.append(party)
-      noise_process = self.env.process(party.update_satisfaction(self.tables))  
-      order = Order(self.env,self.rw(),party,party.table)
-      yield self.env.process(order.place_order(self.kitchen,self.menu_items))
-      self.order_log.append(order)  
-      yield self.env.process(party.eat(order))
+      noise_process = self.env.process(party.update_satisfaction(self.env.ledger.tables))  
+      # order = Order(self.env,self.rw(),party,party.table)
+      # yield self.env.process(order.place_order(self.kitchen,self.menu_items))
+      yield self.env.process(party.place_order(self.kitchen,self.menu_items))
+      # self.order_log.append(order)  
+      yield self.env.process(party.eat())
       check,satisfaction = yield self.env.process(party.leave(self.seating))
     self.checks.append(check)
     self.satisfaction_scores.append(satisfaction)
@@ -156,36 +159,9 @@ class Restaurant:
     return rate# number of groups /hr
   
   def sample_num_parties(self):
-#     cur_time = self.env.m_current_time().timetuple()
-#     # check day of week
-#     if cur_time.tm_wday in (5,6):
-#       # weekend
-#       if cur_time.tm_hour in range(0,9):
-#         m = 0
-#         sd = 0.05
-#       elif cur_time.tm_hour in range(9,15):
-#         m = 4
-#         sd = 4
-#       elif cur_time.tm_hour in range (15,18):
-#         m = 1
-#         sd = 2
-#       else:
-#         m = 5imulation_loop
-#         sd = 3
-#     #elif cur_time.tm_wday == 4:
-#       # friday
-#     imulation_loop
-#     imulation_loop
-#       if cur_time.tm_hour in range(12,14):
-#         m = 4
-#         sd = 3
-#       elif cur_time.tm_hour in range(18,21):
-#         m = 4
-#         sd = 3
-#       else:
-#         m = 0
-#         sd = 0.05
-#     num_parties = int(max(0,np.random.normal(m,sd)))
+    '''
+      Sample the number of parties that are looking to eat in the town at that hour
+    '''
     num_parties = np.random.poisson(self.get_customer_rate())
     return num_parties
         
@@ -202,18 +178,11 @@ class Restaurant:
       self.generated_parties.append(party)
       party_attributes = {k:v for (k,v) in zip(self.demographics,party)}
       party_attributes["size"] = int(np.ceil(party_attributes["size"]*self.max_party_size))
-  #     party_attributes["size"] = int(np.clip(np.random.normal(4,1),1,10))
-  #     party_attributes["noisiness"] = np.clip(np.random.normal(2.5,1),0,5)
-  #     party_attributes["patience"] = np.clip(np.random.normal(2.5,1),0,5)
-  #     party_attributes["affluence"]= np.clip(np.random.normal(2.5,1),0,5)
-  #     party_attributes["space_tolerance"] = np.clip(np.random.normal(2.5,1),0,5)
       if(self.decide_entry(party_attributes)):
         num_entered += 1
-        #self.entered_parties.append(party)
         p = Party(self.env,self.rw().capitalize(),party_attributes)
-        self.entered_parties.append(p)
+        self.env.ledger.parties.append(p)
         entered_parties.append(p)
-        #self.env.process(self.handle_party(p))
       else:
         continue
     self.env.ledger.print("Total groups generated: {}, total entered: {}".format(num_generated, num_entered))   
@@ -239,11 +208,11 @@ class Restaurant:
       if today != day_of_week:
         day_of_week = today
         self.env.day += 1
-        self.ledger.record_day()
+        self.ledger.record_current_day()
         self.calc_stats()
-        costs = self.run_expenses()
+        #costs = self.run_expenses()
         #self.env.process(self.calc_stats())
-        self.summarize(costs,daily_customers,self.entered_parties[party_index:party_index+daily_customers])
+        #self.summarize(costs,daily_customers,self.entered_parties[party_index:party_index+daily_customers])
         daily_customers = 0
         party_index += daily_customers
         #self.restaurant_rating = min(0,2)
@@ -267,9 +236,9 @@ class Restaurant:
     
   def run_expenses(self):
     daily_cost = 0
-    for a in self.appliances:
+    for a in self.env.ledger.appliances:
       daily_cost += a.daily_upkeep
-    for t in self.tables:
+    for t in self.env.ledger.tables:
       daily_cost += t.daily_upkeep
     for o in self.order_log[self.closing_order:]:
       daily_cost += o.total_cost
@@ -305,16 +274,16 @@ class Restaurant:
     stringbuilder += "Parties entered: {}\nParties seated: {}\nParties paid: {}\n".format(len(self.entered_parties),len(self.seated_parties),len([c for c in self.checks if c > 0]))
     revenue = np.sum(self.checks)
     stringbuilder += "Total Revenue: ${:.2f}\n".format(revenue)
-    upfront_costs = np.sum([a.cost for a in self.appliances]) + np.sum([t.cost for t in self.tables])
+    upfront_costs = np.sum([a.cost for a in self.env.ledger.appliances]) + np.sum([t.cost for t in self.env.ledger.tables])
     stringbuilder += "Total Upfront Costs: ${:.2f}\n".format(upfront_costs)
     costs = np.sum(self.daily_costs)
     stringbuilder += "Total Daily Costs: ${:.2f}\n".format(costs)
     stringbuilder += "Total Profit: ${:.2f}\n".format(revenue-costs-upfront_costs)
-    leftovers = len(self.entered_parties)-len(self.checks) #if we cut off the last day while people were dining
-    if leftovers > 0:
-      truncated_entered_parties = self.entered_parties[:-leftovers]
-    else:
-      truncated_entered_parties = self.entered_parties
+    # leftovers = len(self.entered_parties)-len(self.checks) #if we cut off the last day while people were dining
+    # if leftovers > 0:
+    #   truncated_entered_parties = self.entered_parties[:-leftovers]
+    # else:
+    #   truncated_entered_parties = self.entered_parties
     num_served = np.sum([p.size for i,p in enumerate(truncated_entered_parties) if p.paid_check>0])
     stringbuilder += "Total individual customers served: {}\nAverage price per entree: ${:.2f}\n".format(num_served,revenue/num_served)
     stringbuilder += "Avg Satisfaction Score: {:.2f}\nStd Satisfaction Score: {:.2f}\n".format(np.mean(self.satisfaction_scores), np.std(self.satisfaction_scores))

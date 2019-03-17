@@ -58,7 +58,7 @@ if __name__=="__main__":
     r = Restaurant("Sophie's Kitchen", equipment, tables)
     r.simulate(days=30)
     #r.ledger.read_messages()
-    r.final_report()
+    r.env.ledger.generate_final_report()
     #r.ledger.read_messages()
     # equipment2 = [
     #             {"name":"Awesome Pizza Oven", 
