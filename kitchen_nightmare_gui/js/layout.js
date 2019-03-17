@@ -217,5 +217,22 @@ function setupRestaurant(w, h) {
         }
     });
 
+    // setup the viz
     return dining_room;
+}
+
+function setupViz(id, w, h) {
+    let padding = 10
+    let svg = d3.select(id).append('svg').attrs({
+        x: 0,
+        y: 0,
+        width: w,
+        height: h,
+        id: 'graph_svg'
+    });
+
+    let viz = new Viz(svg, 0, 0, w - padding, h);
+    viz.initialize();
+    return viz;
+
 }

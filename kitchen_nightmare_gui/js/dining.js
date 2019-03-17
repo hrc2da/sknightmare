@@ -112,16 +112,16 @@ class DiningRoom {
     // export the current layout as a list of json objects
     get_layout = () => {
         let dining_bound_box = d3.select("#dining_layout");
-        let x_min = Number(dining_bound_box.attr("x"));
-        let y_min = Number(dining_bound_box.attr("y"));
-        let x_max = x_min + Number(dining_bound_box.attr("width"));
-        let y_max = y_min + Number(dining_bound_box.attr("height"));
+        let x_min = Number(dining_bound_box.attr("x")) / this.width;
+        let y_min = Number(dining_bound_box.attr("y")) / this.height;
+        let x_max = (x_min + Number(dining_bound_box.attr("width"))) / this.width;
+        let y_max = (y_min + Number(dining_bound_box.attr("height"))) / this.height;
 
         let table_layout = [];
         for (let table of this.tables) {
             let table_repr = {};
-            table_repr["x"] = table["data"].x;
-            table_repr["y"] = table["data"].y;
+            table_repr["x"] = table["data"].x / this.width;
+            table_repr["y"] = table["data"].y / this.height;
             // not on the table so continue
             if (
                 table_repr["x"] > x_max ||
@@ -147,8 +147,8 @@ class DiningRoom {
             let eq_repr = {};
             eq_repr["name"] = eq["data"].name;
             eq_repr["attributes"] = eq["data"].attributes;
-            eq_repr["attributes"]["x"] = eq["data"]["x"];
-            eq_repr["attributes"]["y"] = eq["data"]["y"];
+            eq_repr["attributes"]["x"] = eq["data"]["x"] / this.width;
+            eq_repr["attributes"]["y"] = eq["data"]["y"] / this.height;
             // not on the table so continue
             if (
                 eq_repr["attributes"]["x"] > x_max ||
