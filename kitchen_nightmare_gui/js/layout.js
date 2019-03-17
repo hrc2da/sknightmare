@@ -65,7 +65,7 @@ function setupRestaurant(w, h) {
         let y = table_box_y + padding * 10;
         for (let key in data) {
             let table_data = data[key];
-            let table = new Table(table_data['type'], 'Placeholder', table_data['seats'], table_data['size'], table_data['cost'], table_data['daily_upkeep'], x, y);
+            let table = new Table(table_data['type'], 'Placeholder', table_data['seats'], table_data['size'], table_data['cost'], table_data['daily_upkeep'], x, y, table_data['svg_path']);
             let svg_attrs = table.draw();
 
             let group = svg.append("g").attrs({
@@ -79,7 +79,7 @@ function setupRestaurant(w, h) {
                 .append(svg_attrs['svg_type'])
                 .attrs(svg_attrs['shape_attrs']);
 
-            // add placeholeder text
+            // add placeholder text
             group.selectAll(".place_holder_table_text")
                 .data(svg_attrs['data'])
                 .enter()

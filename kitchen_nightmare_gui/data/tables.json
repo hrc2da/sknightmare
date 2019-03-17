@@ -1,49 +1,55 @@
 {
     "1": {
-        "type": "rect",
-        "size": 15,
+        "type": "image",
+        "size": 20,
         "seats": 2,
         "name": "Small Square Table",
+        "svg_path": "/svgs/2_table_rect.svg",
         "cost": 250,
         "daily_upkeep": 1
     },
     "2": {
-        "type": "rect",
-        "size": 25,
+        "type": "image",
+        "size": 30,
         "seats": 4,
         "name": "Small Square Table",
+        "svg_path": "/svgs/4_table_rect.svg",
         "cost": 250,
         "daily_upkeep": 1
     },
     "3": {
-        "type": "rect",
-        "size": 40,
+        "type": "image",
+        "size": 50,
         "seats": 8,
         "name": "Large Square Table",
+        "svg_path": "svgs/8_table_rect.svg",
         "cost": 950,
         "daily_upkeep": 2
     },
     "4": {
-        "type": "circle",
-        "size": 15,
+        "type": "image",
+        "size": 20,
         "seats": 2,
         "name": "Small Round Table",
+        "svg_path": "svgs/2_table_round.svg",
         "cost": 275,
         "daily_upkeep": 1
     },
     "5": {
-        "type": "circle",
-        "size": 25,
+        "type": "image",
+        "size": 30,
         "seats": 4,
         "name": "Med Round Table",
+        "svg_path": "svgs/4_table_round.svg",
         "cost": 600,
         "daily_upkeep": 1
     },
     "6": {
-        "type": "circle",
-        "size": 40,
+        "type": "image",
+        "size": 50,
         "seats": 8,
         "name": "Large Round Table",
+        "svg_path": "svgs/8_table_round.svg",
         "cost": 1050,
         "daily_upkeep": 1
     }
