@@ -43,28 +43,28 @@ class Restaurant:
   def __init__(self, name, equipment, tables, start_time='2019-01-01T00:00:00', day_log = None):
     self.env = simpy.Environment()
     self.env.rent = 100
-    self.ledger = Ledger(self.env, self.menu_items,verbose=False,save_messages=True)
+    self.ledger = Ledger(self.env, self.menu_items,verbose=False,save_messages=True, rdq=day_log)
     self.env.ledger = self.ledger
     self.env.day = 0 # just a counter for the number of days
     self.name = name
     self.setup_constants()
 
     # queue for reporting the days internally or externally (if day_log is an rdq, see flask_app for more details)
-    if day_log:
-      self.day_log = day_log
-    else:
-      self.day_log = queue.Queue()
+    # if day_log:
+    #   self.day_log = day_log
+    # else:
+    #   self.day_log = queue.Queue()
 
     # sim mechanics
     self.setup_neighborhood()
     self.setup_kitchen(equipment)
     self.setup_seating(tables)
-
+    
     # tools
     self.name_generator = RandomWords()
     self.start_time = arrow.get(start_time) # this doesn't really matter unless we start considering seasons etc.
     self.monkey_patch_env()
-
+    
     # stats
     self.satisfaction_scores = []
     self.restaurant_rating = 1 #score between 0 and 1
@@ -83,10 +83,15 @@ class Restaurant:
     self.env.max_noise_db = 10
 
   def setup_kitchen(self, equipment):
+    print("starting restsim", len(equipment))
     self.kitchen = simpy.FilterStore(self.env, capacity=len(equipment))
+    print("starting restsim")
     self.kitchen.items = [Appliance(self.env,e["name"],e["attributes"]) for e in equipment]
+    print("starting restsim")
     self.menu_items = [m for m in self.menu_items if any(all(req in appliance.capabilities for req in m["requirements"]) for appliance in self.kitchen.items)]
+    print("starting restsim")
     self.env.ledger.print("Menu: {}".format(self.menu_items))
+    print("starting restsim")
     self.env.ledger.set_appliances( [a for a in self.kitchen.items] )
 
   def setup_seating(self, tables):
