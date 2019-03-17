@@ -134,6 +134,8 @@ class Party:
     self.noise_tolerance = attributes["noise_tolerance"]
     self.space_tolerance = attributes["space_tolerance"]
     self.mood = attributes["mood"]
+    self.paid_check = 0
+    self.satisfaction = self.mood
     self.tolerance_weights = {}
     self.max_budget = 100 # how much the richest of the rich can/would pay for a meal
     
@@ -163,7 +165,7 @@ class Party:
         return False
   def eat(self,order):
     self.env.ledger.print("Party {} is eating".format(self.name))
-    self.satisfaction += np.mean(order.satisfactions) #should consider wait time here as well
+    # self.satisfaction += np.mean(order.satisfactions) #should consider wait time here as well
     self.bill = order.bill
     yield self.env.timeout(10*60*self.size)
   
@@ -200,8 +202,11 @@ class Party:
             return
       self.perceived_noisiness = noise
       self.satisfaction = self.mood - (1-self.noise_tolerance)*self.perceived_noisiness
+<<<<<<< HEAD
       print("Noise {}".format(noise))
       print("Name {} Mood {} Sat {}".format(self.name, self.mood, self.satisfaction))
+=======
+>>>>>>> bbb49c92dc97cbdff59c37e5820d5f224b799e83
       yield self.env.timeout(300)
 
 

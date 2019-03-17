@@ -87,6 +87,8 @@ function setupRestaurant(w, h) {
                 .text(svg_attrs['text'])
                 .attrs(svg_attrs['text_attrs'])
 
+            let new_svg_attrs = {};
+
             let drag = d3.drag().on('drag', function (d) {
                     d3.select('#candidate_table_').select(svg_attrs['svg_type']).attrs(svg_attrs['shape_drag_attrs']);
                     d3.select('#candidate_table_').select('text').attrs(svg_attrs['text_drag_attrs']);
@@ -94,20 +96,22 @@ function setupRestaurant(w, h) {
                     let new_table_group = svg.append("g").attrs({
                         id: 'candidate_table_'
                     })
+                    // deep copy the svg_attrs, find better fix for this.
+                    new_svg_attrs = JSON.parse(JSON.stringify(svg_attrs));
                     // create new table_icon
                     new_table_group.selectAll(".new_table_icon")
-                        .data(svg_attrs['data'])
+                        .data(new_svg_attrs['data'])
                         .enter()
-                        .append(svg_attrs['svg_type'])
-                        .attrs(svg_attrs['shape_attrs']);
+                        .append(new_svg_attrs['svg_type'])
+                        .attrs(new_svg_attrs['shape_attrs']);
 
                     // create new table_text
                     new_table_group.selectAll(".new_table_text")
-                        .data(svg_attrs['data'])
+                        .data(new_svg_attrs['data'])
                         .enter()
                         .append("text")
-                        .text(svg_attrs['text'])
-                        .attrs(svg_attrs['text_attrs'])
+                        .text(new_svg_attrs['text'])
+                        .attrs(new_svg_attrs['text_attrs'])
                 })
                 .on('end', function (d) {
                     let mouseX = d3.mouse(this)[0];
@@ -119,7 +123,7 @@ function setupRestaurant(w, h) {
                             id: 'table_' + dining_room.num_tables
                         });
                         dining_room.add_table({
-                            'table_svg_attrs': Object.assign({}, svg_attrs),
+                            'table_svg_attrs': new_svg_attrs,
                             'table_g': new_table_group
                         });
                     } else {
@@ -164,6 +168,8 @@ function setupRestaurant(w, h) {
                 .text(svg_attrs['text'])
                 .attrs(svg_attrs['text_attrs'])
 
+            let new_svg_attrs = {}
+
             let drag = d3.drag().on('drag', function (d) {
                     d3.select('#candidate_item_').select(svg_attrs['svg_type']).attrs(svg_attrs['shape_drag_attrs']);
                     d3.select('#candidate_item_').select('text').attrs(svg_attrs['text_drag_attrs']);
@@ -171,20 +177,22 @@ function setupRestaurant(w, h) {
                     let new_item_group = svg.append("g").attrs({
                         id: 'candidate_item_'
                     })
+                    // deep copy the svg_attrs, find better fix for this.
+                    new_svg_attrs = JSON.parse(JSON.stringify(svg_attrs));
                     // create new item_icon
                     new_item_group.selectAll(".new_item_icon")
-                        .data(svg_attrs['data'])
+                        .data(new_svg_attrs['data'])
                         .enter()
-                        .append(svg_attrs['svg_type'])
-                        .attrs(svg_attrs['shape_attrs']);
+                        .append(new_svg_attrs['svg_type'])
+                        .attrs(new_svg_attrs['shape_attrs']);
 
                     // create new item_text
                     new_item_group.selectAll(".new_item_text")
-                        .data(svg_attrs['data'])
+                        .data(new_svg_attrs['data'])
                         .enter()
                         .append("text")
-                        .text(svg_attrs['text'])
-                        .attrs(svg_attrs['text_attrs'])
+                        .text(new_svg_attrs['text'])
+                        .attrs(new_svg_attrs['text_attrs'])
                 })
                 .on('end', function (d) {
                     let mouseX = d3.mouse(this)[0];
@@ -196,7 +204,7 @@ function setupRestaurant(w, h) {
                             id: 'item_' + dining_room.num_items
                         });
                         dining_room.add_item({
-                            'item_svg_attrs': Object.assign({}, svg_attrs),
+                            'item_svg_attrs': new_svg_attrs,
                             'item_g': new_item_group
                         });
                     } else {
@@ -209,5 +217,22 @@ function setupRestaurant(w, h) {
         }
     });
 
+    // setup the viz
     return dining_room;
+}
+
+function setupViz(id, w, h) {
+    let padding = 10
+    let svg = d3.select(id).append('svg').attrs({
+        x: 0,
+        y: 0,
+        width: w,
+        height: h,
+        id: 'graph_svg'
+    });
+
+    let viz = new Viz(svg, 0, 0, w - padding, h);
+    viz.initialize();
+    return viz;
+
 }

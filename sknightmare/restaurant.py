@@ -6,7 +6,7 @@ seed(10)
 from random_words import RandomWords
 import arrow # for nicer datetimes
 import math
-
+import queue
 from objects import Party, Table, Order, Appliance, Ledger
 
 class Restaurant:
@@ -15,12 +15,16 @@ class Restaurant:
     tables is a list of Tables
 
   '''
-  def __init__(self, name, equipment, tables, start_time='2019-01-01T00:00:00'):
+  def __init__(self, name, equipment, tables, start_time='2019-01-01T00:00:00', day_log = None):
     self.env = simpy.Environment()
     self.ledger = Ledger(verbose=False,save_messages=True)
     self.env.ledger = self.ledger
     self.env.day = 0
     self.name = name
+    if day_log:
+      self.day_log = day_log
+    else:
+      self.day_log = queue.Queue()
     self.menu_items = [
       {
           "name": "Simple Pizza",
@@ -210,6 +214,7 @@ class Restaurant:
       else:
         continue
     self.env.ledger.print("Total groups generated: {}, total entered: {}".format(num_generated, num_entered))   
+    return num_entered
   
   def decide_entry(self,party_attributes):
     if(party_attributes["size"] > self.max_table_size):
@@ -223,6 +228,8 @@ class Restaurant:
     
   def simulation_loop(self):
     day_of_week = ""
+    daily_customers = 0
+    party_index = 0
     while True:
       yield self.env.timeout(60*60) #every hour
       today = self.env.m_current_time().format("dddd")
@@ -231,16 +238,18 @@ class Restaurant:
         self.env.day += 1
         self.ledger.record_day()
         self.calc_stats()
-        self.run_expenses()
+        costs = self.run_expenses()
         #self.env.process(self.calc_stats())
-        #self.summarize()
+        self.summarize(costs,daily_customers,self.entered_parties[party_index:party_index+daily_customers])
+        daily_customers = 0
+        party_index += daily_customers
         #self.restaurant_rating = min(0,2)
         #self.restaurant_rating = np.mean(self.satisfaction_scores)
         #day = self.env.m_current_time().format("ddd MMM D")
         #print("Summary for {}: satisfaction: {}".format(day,self.restaurant_rating))
       # generate 0+ parties based on the time of day & popularity of the restaurant
-      self.generate_parties(self.sample_num_parties())     
-        
+      daily_customers +=  self.generate_parties(self.sample_num_parties())     
+      
         
   def simulate(self,seconds=None,days=None):
     if seconds:
@@ -261,15 +270,27 @@ class Restaurant:
       daily_cost += o.total_cost
       self.closing_order = len(self.order_log)
     self.daily_costs.append(daily_cost)
+    return daily_cost
     
   def calc_stats(self):
     if len(self.satisfaction_scores) > 0:
       self.restaurant_rating = np.mean(self.satisfaction_scores)
 
  
-  def summarize(self):
+  def summarize(self,costs,volume,parties):
     day = self.env.m_current_time().format("ddd MMM D")
-    self.env.ledger.print("Summary for {}: satisfaction: {}".format(day,self.restaurant_rating))
+    customers = np.sum([p.size for p in parties])
+    if customers > 0:
+      noise = np.sum([p.size*p.noisiness for p in parties])/customers
+      total_bills = np.sum([p.paid_check for p in parties])
+      satisfaction = np.mean([p.satisfaction for p in parties if not np.isnan(p.satisfaction)])
+      self.env.ledger.print("Summary for {}: satisfaction: {}".format(day,self.restaurant_rating))
+    else:
+      noise = 0
+      total_bills = 0
+      satisfaction = 0
+    self.day_log.put({"day": self.env.day,"expenses":costs,"rating":self.restaurant_rating,"num_entered":volume, "noise": noise, "revenue":total_bills, "satisfaction": satisfaction})
+
 
   def final_report(self):
     stringbuilder = ""
