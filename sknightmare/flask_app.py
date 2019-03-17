@@ -13,7 +13,7 @@ socketio = SocketIO(app)
 class RestaurantDayQueue(Queue):
     def put(self, report, block=True, timeout=None):
         print(report)
-        emit('day_report',json.dumps(report))
+        emit('day_report', json.dumps(report.get_report()))
         super().put(report, block, timeout)
 
 
@@ -32,14 +32,13 @@ def handle_connect():
     emit('session_id', sess)
 
 
-
 @socketio.on('simulate')
 def socket_simulate(restaurant):
     layout = json.loads(restaurant)
-    rdq = RestaurantDayQueue()  
-    r = Restaurant("Sophie's Kitchen", layout["equipment"], layout["tables"],day_log=rdq)
+    rdq = RestaurantDayQueue()
+    r = Restaurant("Sophie's Kitchen", layout["equipment"], layout["tables"], day_log=rdq)
     r.simulate(days=int(layout["days"]))
-    emit("sim_report",r.final_report())
+    emit("sim_report", r.final_report())
 
 
 if __name__ == "__main__":
