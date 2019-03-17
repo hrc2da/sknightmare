@@ -11,3 +11,9 @@ body {
 .table_form {
     margin-bottom: 1em;
 }
+
+.graph_path {
+    stroke: steelblue;
+    stroke-width: 2;
+    fill: none;
+}
