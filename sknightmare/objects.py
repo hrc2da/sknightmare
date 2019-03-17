@@ -189,7 +189,8 @@ class Party:
         if t.party != self and t.party != None:
           try:
             sqrdist = (t.x - self.table.x)**2 + (t.y-self.table.y)**2
-            noise += 1*t.party.noisiness*t.party.size/sqrdist
+            noise += 239194*t.party.noisiness*t.party.size/sqrdist
+            #print(sqrdist)
             if sqrdist == 0:
               print("Table Party {}, {}, {}".format(self.table.party.name, self.name, t.party.name))
               print("Self Table name {} X:{} Y:{}".format(self.table.name, self.table.x, self.table.y))
@@ -198,7 +199,9 @@ class Party:
             self.env.ledger.print("Table left while checking for noise")
             return
       self.perceived_noisiness = noise
-      self.satisfaction = self.mood + (1-self.noise_tolerance)*self.perceived_noisiness
+      self.satisfaction = self.mood - (1-self.noise_tolerance)*self.perceived_noisiness
+      print("Noise {}".format(noise))
+      print("Name {} Mood {} Sat {}".format(self.name, self.mood, self.satisfaction))
       yield self.env.timeout(300)
 
 
