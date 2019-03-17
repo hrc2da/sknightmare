@@ -25,6 +25,10 @@ class RestaurantDayQueue(Queue):
 #     r.simulate(days=int(layout["days"]))
 #     return jsonify({"report": r.final_report()})
 
+@app.route('/', methods=['GET'])
+def hello():
+    return "Welcome to the SKNightmare"
+
 
 @socketio.on('connect')
 def handle_connect():

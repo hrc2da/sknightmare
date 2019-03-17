@@ -43,17 +43,17 @@ class Restaurant:
   def __init__(self, name, equipment, tables, start_time='2019-01-01T00:00:00', day_log = None):
     self.env = simpy.Environment()
     self.env.rent = 100
-    self.ledger = Ledger(self.env, self.menu_items,verbose=False,save_messages=True)
+    self.ledger = Ledger(self.env, self.menu_items,verbose=False,save_messages=True, rdq = day_log)
     self.env.ledger = self.ledger
     self.env.day = 0 # just a counter for the number of days
     self.name = name
     self.setup_constants()
 
     # queue for reporting the days internally or externally (if day_log is an rdq, see flask_app for more details)
-    if day_log:
-      self.day_log = day_log
-    else:
-      self.day_log = queue.Queue()
+    # if day_log:
+    #   self.day_log = day_log
+    # else:
+    #   self.day_log = queue.Queue()
 
     # sim mechanics
     self.setup_neighborhood()
