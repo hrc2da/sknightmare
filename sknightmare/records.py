@@ -230,7 +230,8 @@ class RestaurantDay:
             'wait_time': self.get_avg_wait_time(),
             'cook_time': self.get_avg_total_cook_time(),
             'food_stats': self.get_menu_stats(),
-            'expenses': self.expenses
+            'expenses': self.expenses,
+            'revenue': self.get_total_revenue()
         }
 
 
