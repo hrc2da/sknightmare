@@ -167,28 +167,102 @@ class DiningRoom {
 
     load_json_layout = (json_string) => {
         let dining_repr = JSON.parse(json_string);
-        let table_info = dining_repr['table'];
+        let table_info = dining_repr['tables'];
         let item_info = dining_repr['equipment'];
-        let waiter_info = dining_repr['waiters'];
+        let waiter_info = dining_repr['staff'];
         this.num_items = 0;
         this.num_tables = 0;
         this.num_waiters = 0;
         this.tables = [];
         this.items = [];
         this.waiters = [];
+        let svg = d3.select('#gui_layout');
         for (let table of table_info) {
-            this.num_tables++;
-            this.tables.push(new Table('image', table['seats'], table['size'], 0, 0, table['x'], table['y']));
-        };
-        for (let item of item_info) {
-            this.num_items++;
-            this.items.push(new Item('rect', item['name'], item['size'], item['attributes'], item['x'], item['y']));
-        };
-        for (let waiter of waiter_info) {
-            this.num_waiters++;
-            this.waiter.push(new Staff(waiter['x'], waiter['y']));
+            let table_obj = new Table('image', table['name'], table['seats'], table['size'], 0, 0, table['x'] * this.width, table['y'] * this.height);
+            let svg_attrs = table_obj.draw();
+
+            let group = svg.append("g").attrs({
+                id: "new_table_" + dining_room.num_tables
+            });
+
+            // add the placeholder icons
+            group.selectAll(".new_table_icon")
+                .data(svg_attrs["data"])
+                .enter()
+                .append(svg_attrs["svg_type"])
+                .attrs(svg_attrs["shape_attrs"]);
+
+            // add placeholder text
+            group.selectAll(".new_table_text")
+                .data(svg_attrs["data"])
+                .enter()
+                .append("text")
+                .text(svg_attrs["text"])
+                .attrs(svg_attrs["text_attrs"]);
+
+            this.add_table({
+                table_svg_attrs: svg_attrs,
+                table_g: group
+            });
         };
 
+        for (let item of item_info) {
+            let item_obj = new Item('rect', item['name'], 35, item['attributes'], item['attributes']['x'] * this.width, item['attributes']['y'] * this.height);
+            let svg_attrs = item_obj.draw();
+            let group = svg.append("g").attrs({
+                id: "new_item_" + dining_room.num_items
+            });
+
+            // add the placeholder icons
+            group.selectAll(".new_item_icon")
+                .data(svg_attrs["data"])
+                .enter()
+                .append(svg_attrs["svg_type"])
+                .attrs(svg_attrs["shape_attrs"]);
+
+            // add placeholder text
+            group.selectAll(".new_item_text")
+                .data(svg_attrs["data"])
+                .enter()
+                .append("text")
+                .text(svg_attrs["text"])
+                .attrs(svg_attrs["text_attrs"]);
+
+            this.add_item({
+                item_svg_attrs: svg_attrs,
+                item_g: group
+            });
+        };
+        for (let waiter of waiter_info) {
+            let staff_obj = new Staff(waiter['x'] * this.width, waiter['y'] * this.height);
+            let svg_attrs = staff_obj.draw();
+
+            let group = svg.append("g").attrs({
+                id: "waiter_" + this.num_waiters
+            });
+
+            // add the placeholder icons
+            group
+                .selectAll(".new_waiter_icon")
+                .data(svg_attrs["data"])
+                .enter()
+                .append(svg_attrs["svg_type"])
+                .attrs(svg_attrs["shape_attrs"]);
+
+            // add placeholeder text
+            group
+                .selectAll(".new_waiter_text")
+                .data(svg_attrs["data"])
+                .enter()
+                .append("text")
+                .text(svg_attrs["text"])
+                .attrs(svg_attrs["text_attrs"]);
+
+            this.add_staff({
+                waiter_svg_attrs: svg_attrs,
+                waiter_g: group
+            });
+        };
     }
 
     // export the current layout as a list of json objects
