@@ -38,6 +38,14 @@ class RestaurantDay:
     def parse_party(self, party):
         return PartyStats(party.satisfaction, None, party.perceived_noisiness, 0, 0, 0)
 
+    def get_received_noise(self):
+        noises = [t.received_noise for t in self.tables_stats.values()]
+        if len(noises) > 0:
+            return np.mean(noises)
+        else:
+            return 0
+
+
     def get_rating(self, level, stats):
         if level == "yelp":
             tiered_items = {k: v for k, v in stats.items() if self.menu_dict[k]['price'] < 0.1*self.env.max_budget}
@@ -232,7 +240,8 @@ class RestaurantDay:
             'food_stats': self.get_menu_stats(),
             'expenses': self.expenses,
             'revenue': self.get_total_revenue(),
-            'profit': self.get_total_revenue()-self.expenses
+            'profit': self.get_total_revenue()-self.expenses,
+            'noise': self.get_received_noise()
         }
 
 
@@ -367,7 +376,8 @@ class Ledger:
                     "michelin_rating": float(self.michelin_rating),
                     "satisfaction": float(self.satisfaction),
                     "total_overhead": float(np.sum(expenses)),
-                    "upfront_costs": float(self.upfront_costs)
+                    "upfront_costs": float(self.upfront_costs),
+                    "profit": float(revenue-self.upfront_costs-np.sum(expenses))
                   }
         for entry in report:
             if self.verbose == True:
