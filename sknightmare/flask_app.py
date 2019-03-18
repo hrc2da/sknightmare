@@ -42,11 +42,8 @@ def socket_simulate(restaurant):
     rdq = RestaurantDayQueue()
     r = Restaurant("Sophie's Kitchen", layout["equipment"], layout["tables"], layout["staff"], day_log=rdq)
     r.simulate(days=int(layout["days"]))
+    emit("sim_report", r.ledger.generate_final_report())
 
 
-self.env.rent = 100inal_report())
-self.env.rent=100
-self.env.rent=100
-self.env.rent=100
-self.env.rent=100
-self.env.rent=100
+if __name__ == "__main__":
+    socketio.run(app, host='0.0.0.0')
