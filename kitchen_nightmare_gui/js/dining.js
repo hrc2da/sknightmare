@@ -165,20 +165,34 @@ class DiningRoom {
 
     }
 
-    load_json_layout = (json_string) => {
-        let dining_repr = JSON.parse(json_string);
-        let table_info = dining_repr['tables'];
-        let item_info = dining_repr['equipment'];
-        let waiter_info = dining_repr['staff'];
+    clear_layout = () => {
+        for (let table of this.tables) {
+            table['table_g'].remove();
+        }
+        for (let item of this.items) {
+            item['item_g'].remove();
+        }
+        for (let waiter of this.waiters) {
+            waiter['waiter_g'].remove();
+        }
         this.num_items = 0;
         this.num_tables = 0;
         this.num_waiters = 0;
         this.tables = [];
         this.items = [];
         this.waiters = [];
+    }
+
+    load_json_layout = (json_string) => {
+        this.clear_layout();
+        let dining_repr = JSON.parse(json_string);
+        let table_info = dining_repr['tables'];
+        let item_info = dining_repr['equipment'];
+        let waiter_info = dining_repr['waiters'];
+
         let svg = d3.select('#gui_layout');
         for (let table of table_info) {
-            let table_obj = new Table('image', table['name'], table['seats'], table['size'], 0, 0, table['x'] * this.width, table['y'] * this.height);
+            let table_obj = new Table('image', table['name'], table['attributes']['seats'], table['attributes']['radius'], 0, 0, table['attributes']['x'] * this.width, table['attributes']['y'] * this.height);
             let svg_attrs = table_obj.draw();
 
             let group = svg.append("g").attrs({
@@ -207,7 +221,7 @@ class DiningRoom {
         };
 
         for (let item of item_info) {
-            let item_obj = new Item('rect', item['name'], 35, item['attributes'], item['attributes']['x'] * this.width, item['attributes']['y'] * this.height);
+            let item_obj = new Item('rect', item['name'], 35, item['attributes'], Math.random() * this.width, Math.random() * this.height);
             let svg_attrs = item_obj.draw();
             let group = svg.append("g").attrs({
                 id: "new_item_" + dining_room.num_items

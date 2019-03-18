@@ -71,6 +71,10 @@
                 socket.emit('simulate', JSON.stringify(layout));
             });
         });
+        let restaurants = {};
+        d3.json("data/loading_test.json").then(function (data) {
+            restaurants = data['restaurants'];
+        });
     </script>
 </body>
 
