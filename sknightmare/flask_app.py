@@ -17,12 +17,6 @@ class RestaurantDayQueue(Queue):
         super().put(report, block, timeout)
 
 
-<<<<<<< HEAD
-@app.route('/', methods=['GET'])
-def hello():
-    return("Welcome to the SKNightmare!")
-=======
->>>>>>> 4dc0e62a3eafdb29355c247dcfd3beb84208ca2a
 # @app.route('/simulate', methods=['POST'])
 # def simulate():
 #     layout = request.get_json(force=True)
@@ -30,13 +24,10 @@ def hello():
 #     r = Restaurant("Sophie's Kitchen", layout["equipment"], layout["tables"])
 #     r.simulate(days=int(layout["days"]))
 #     return jsonify({"report": r.final_report()})
-<<<<<<< HEAD
-=======
 
 @app.route('/', methods=['GET'])
 def hello():
     return "Welcome to the SKNightmare"
->>>>>>> 4dc0e62a3eafdb29355c247dcfd3beb84208ca2a
 
 
 @socketio.on('connect')
@@ -51,8 +42,11 @@ def socket_simulate(restaurant):
     rdq = RestaurantDayQueue()
     r = Restaurant("Sophie's Kitchen", layout["equipment"], layout["tables"], layout["staff"], day_log=rdq)
     r.simulate(days=int(layout["days"]))
-    emit("sim_report", r.ledger.generate_final_report())
 
 
-if __name__ == "__main__":
-    socketio.run(app, host='0.0.0.0')
+self.env.rent = 100inal_report())
+self.env.rent=100
+self.env.rent=100
+self.env.rent=100
+self.env.rent=100
+self.env.rent=100
