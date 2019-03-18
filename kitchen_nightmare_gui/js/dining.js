@@ -165,6 +165,32 @@ class DiningRoom {
 
     }
 
+    load_json_layout = (json_string) => {
+        let dining_repr = JSON.parse(json_string);
+        let table_info = dining_repr['table'];
+        let item_info = dining_repr['equipment'];
+        let waiter_info = dining_repr['waiters'];
+        this.num_items = 0;
+        this.num_tables = 0;
+        this.num_waiters = 0;
+        this.tables = [];
+        this.items = [];
+        this.waiters = [];
+        for (let table of table_info) {
+            this.num_tables++;
+            this.tables.push(new Table('image', table['seats'], table['size'], 0, 0, table['x'], table['y']));
+        };
+        for (let item of item_info) {
+            this.num_items++;
+            this.items.push(new Item('rect', item['name'], item['size'], item['attributes'], item['x'], item['y']));
+        };
+        for (let waiter of waiter_info) {
+            this.num_waiters++;
+            this.waiter.push(new Staff(waiter['x'], waiter['y']));
+        };
+
+    }
+
     // export the current layout as a list of json objects
     get_layout = () => {
         let dining_bound_box = d3.select("#dining_layout");
