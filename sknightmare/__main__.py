@@ -46,16 +46,18 @@ if __name__ == "__main__":
                                  "daily_upkeep":10, "reliability":0.9}}
                  ]
     tables = [{"name": "Table 1",
-               "attributes": {"x": 2.21, "y": 3.27, "radius": 4, "seats": 2, "cost": 300, "daily_upkeep": 1}},
+               "attributes": {"x": 0.21, "y": 0.27, "radius": 4, "seats": 2, "cost": 300, "daily_upkeep": 1}},
               # {"name":"Table 2",
               # "attributes":{"x":4.1,"y":5.7,"radius":7,"seats":5,"cost":800,"daily_upkeep":1}},
               # {"name":"Table 1",
               # "attributes":{"x":12.1,"y":5.7,"radius":4,"seats":5,"cost":800,"daily_upkeep":1}},
               {"name": "Table 2",
-               "attributes": {"x": 23.31, "y": 34.37, "radius": 4, "seats": 5, "cost": 800, "daily_upkeep": 1}},
+               "attributes": {"x": 0.31, "y": 0.37, "radius": 4, "seats": 5, "cost": 800, "daily_upkeep": 1}},
               {"name": "Table 3",
-               "attributes": {"x": 22.1, "y": 3.7, "radius": 4, "seats": 5, "cost": 800, "daily_upkeep": 1}}, ]
-    r = Restaurant("Sophie's Kitchen", equipment, tables)
+               "attributes": {"x": 0.1, "y": 0.7, "radius": 4, "seats": 5, "cost": 800, "daily_upkeep": 1}}, ]
+
+    staff = [{'x': 0.2, 'y': 0.6},{'x': 0.4, 'y': 0.4}]#,{'x': 0.7, 'y': 0.7}]
+    r = Restaurant("Sophie's Kitchen", equipment, tables, staff)
     r.simulate(days=30)
     # r.ledger.read_messages()
     r.env.ledger.generate_final_report()

@@ -25,7 +25,8 @@ class RestaurantDay:
         self.michelin_rating, self.michelin_count = self.get_rating("michelin", self.menu_stats)
         self.satisfaction = self.get_avg_satisfaction()[0]
         self.expenses = self.get_food_cost() + self.get_seating_cost(tables) + \
-            self.get_equipment_cost(self.env.ledger.appliances) + self.env.rent
+            self.get_equipment_cost(self.env.ledger.appliances) + self.env.rent + \
+            len(self.env.ledger.staff)*self.env.worker_wage
 
     def get_parties(self, table):
         return [p for p in self.parties if p.status >= PartyStatus.SEATED and p.table.name == table.name]
@@ -205,14 +206,27 @@ class RestaurantDay:
         elif status == "paid":
             return
 
+    def get_entry_size(self):
+        if len(self.parties) < 1:
+            return 0
+        else:
+            return np.mean([p.size for p in self.parties])
+
+    def get_paid_size(self):
+        paid = [p.size for p in self.parties if p.status >= PartyStatus.PAID]
+        if len(paid) < 1:
+            return 0
+        else:
+            return np.mean(paid)
     def get_report(self):
+
         return {
             'entries': len(self.parties),
             'seated': len([p for p in self.parties if p.status >= PartyStatus.SEATED]),
             'served': len([p for p in self.parties if p.status >= PartyStatus.EATING]),
             'paid': len([p for p in self.parties if p.status >= PartyStatus.PAID]),
-            'entry_party_size':  np.mean([p.size for p in self.parties]),
-            'paid_party_size':  np.mean([p.size for p in self.parties if p.status >= PartyStatus.PAID]),
+            'entry_party_size':  self.get_entry_size(),
+            'paid_party_size':  self.get_paid_size(),
             'wait_time': self.get_avg_wait_time(),
             'cook_time': self.get_avg_total_cook_time(),
             'food_stats': self.get_menu_stats(),
@@ -341,17 +355,17 @@ class Ledger:
         satisfactions, s_stds = zip(*[d.get_avg_satisfaction() for d in days])
         expenses = [d.expenses for d in days]
 
-        report = {"revenue": revenue,
-                  "cook_times": (np.mean(cook_times), np.std(cook_times)),
-                  "wait_times": (np.mean(wait_times), np.std(wait_times)),
-                  "satisfaction": (np.mean(satisfactions), np.std(satisfactions)),
-                  "menu_stats": self.get_menu_stats(),
-                  "yelp_rating": self.yelp_rating,
-                  "zagat_rating": self.zagat_rating,
-                  "michelin_rating": self.michelin_rating,
-                  "satisfaction": self.satisfaction,
-                  "total_overhead": np.sum(expenses),
-                  "upfront_costs": self.upfront_costs
+        report = {"revenue": float(revenue),
+                    "cook_times": [float(np.mean(cook_times)), float(np.std(cook_times))],
+                    "wait_times": [float(np.mean(wait_times)), float(np.std(wait_times))],
+                    "satisfaction": [float(np.mean(satisfactions)), float(np.std(satisfactions))],
+                    "menu_stats": self.get_menu_stats(),
+                    "yelp_rating": float(self.yelp_rating),
+                    "zagat_rating": float(self.zagat_rating),
+                    "michelin_rating": float(self.michelin_rating),
+                    "satisfaction": float(self.satisfaction),
+                    "total_overhead": float(np.sum(expenses)),
+                    "upfront_costs": float(self.upfront_costs)
                   }
         for entry in report:
             if self.verbose == True:

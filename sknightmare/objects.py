@@ -116,6 +116,7 @@ class Table:
   
   def start_simulation(self):
     self.calculate_distances()
+    self.get_service_rating()
     self.env.process(self.update_stats())
 
   def parse_attributes(self, attributes):
@@ -125,6 +126,20 @@ class Table:
     self.seats = attributes["seats"]
     self.daily_upkeep = attributes["daily_upkeep"]
     self.cost = attributes["cost"]
+    
+  def get_service_rating(self):
+    '''
+      based on the distance to all wait staff, calculate a service rating that will be used
+      to update party satisfaction
+    '''
+    raw_rating = 0
+    max_dist = np.linalg.norm((1,1))
+    for w in self.env.ledger.staff:
+      distance = np.linalg.norm((self.x - w.x, self.y-w.y),2)
+      raw_rating += (1-distance/max_dist)/len(self.env.ledger.tables) #self.env.ledger.capacity# 
+    self.service_rating = np.clip(raw_rating,0,1)
+    print("SERVICE_RATING:",self.service_rating)
+
 
   def get_generated_noise(self, index = None):
     if len(self.generated_noise) == 0:
@@ -149,7 +164,7 @@ class Table:
       self.update_generated_noise()
       self.update_received_noise()
       self.update_crowding()
-      yield self.env.timeout(5*60) # 5 minutes timeout
+      yield self.env.timeout(self.env.sim_loop_delay) # 5 minutes timeout
 
   def update_generated_noise(self):
     if self.party is not None:
@@ -192,7 +207,15 @@ class Table:
         sqrdist = np.linalg.norm(((t.x - self.x), (t.y-self.y)),2)
         assert sqrdist > 0
         self.distances[t.name] = sqrdist
-    
+
+class Staff:
+  '''
+    Really dumb basic class for now, but may make more useful later
+  '''
+  def __init__(self,x,y):
+    self.x = x
+    self.y = y
+
 class Party:
   '''
     Parties are generated and wait in a queue to be seated
@@ -211,6 +234,7 @@ class Party:
     self.table = None
     self.perceived_noisiness = 0.0
     self.satisfaction = self.mood
+    self.service = []
     self.env.ledger.print("Welcoming Party {} of size {}.".format(self.name,self.size))
     self.wait_start_time = self.env.m_current_time()
     self.status = PartyStatus.ENTERED
@@ -227,20 +251,22 @@ class Party:
     self.noise_tolerance = attributes["noise_tolerance"]
     self.space_tolerance = attributes["space_tolerance"]
     self.mood = attributes["mood"]
+    self.sensitivity = attributes["sensitivity"]
     self.paid_check = 0
     self.satisfaction = self.mood
     self.tolerance_weights = {}
     self.max_budget = self.env.max_budget # how much the richest of the rich can/would pay for a meal
     self.max_wait_tolerance = self.patience * self.env.max_wait_time
     self.max_noise_level = self.noise_tolerance * self.env.max_noise_db
-  
+
   def generate_normalized_weights(self):
     # returns normalized relative weights for things that affect satisfaction
-    total_weight = self.taste + self.patience + (1-self.noise_tolerance) + (1-self.space_tolerance)
+    total_weight = self.taste + self.patience + (1-self.noise_tolerance) + (1-self.space_tolerance) + self.sensitivity
     self.taste_weight = self.taste/total_weight
     self.patience_weight = self.patience/total_weight
     self.noise_weight = (1-self.noise_tolerance)/total_weight
     self.space_weight = (1-self.space_tolerance)/total_weight
+    self.sensitivity_weight = self.sensitivity/total_weight
 
   def wait_for_table(self, seating):
     start_time = self.env.m_current_time()
@@ -283,7 +309,7 @@ class Party:
     self.status = PartyStatus.EATING
     # self.satisfaction += np.mean(order.satisfactions) #should consider wait time here as well
     self.bill = self.order.bill
-    yield self.env.timeout(10*60*self.size)
+    yield self.env.timeout(10*60*self.size*self.leisureliness)
     self.eating_time = self.env.m_current_time()-start_time
   
   def leave(self, seating):
@@ -304,23 +330,30 @@ class Party:
 
   def update_satisfaction(self, tables):
     while self.status >= PartyStatus.SEATED and self.status < PartyStatus.PAID: # do this for as long as we're seated
+      service_draw = np.random.rand()
+      if service_draw <= self.table.service_rating:
+        service = 1
+      else:
+        service = 0
+      self.service.append(service)
       self.perceived_noisiness = self.table.get_received_noise()
-      if self.status == PartyStatus.ORDERED:
-        total_weight = self.patience_weight + self.noise_weight
+      if self.status == PartyStatus.SEATED or self.status == PartyStatus.ORDERED:
+        total_weight = self.patience_weight + self.noise_weight + self.sensitivity
         current_wait = self.env.m_current_time() - self.wait_start_time
         self.satisfaction = (1-total_weight)*self.satisfaction + self.patience_weight*(1-current_wait.total_seconds()/self.max_wait_tolerance) + self.noise_weight*(1-self.perceived_noisiness/self.max_noise_level)
+        self.satisfaction += self.sensitivity_weight*service #split onto a second line just for readability
       elif self.status == PartyStatus.EATING:
-        total_weight = self.noise_weight + self.taste_weight
+        total_weight = self.noise_weight + self.taste_weight + self.sensitivity
         if len(self.order.qualities) > 0:
           food_quality = np.mean(self.order.qualities)
         else:
           food_quality = 0
-        self.satisfaction = (1-total_weight)*self.satisfaction + self.noise_weight*(1-self.perceived_noisiness/self.max_noise_level) +self.taste_weight*(food_quality)
+        self.satisfaction = (1-total_weight)*self.satisfaction + self.noise_weight*(1-self.perceived_noisiness/self.max_noise_level) +self.taste_weight*(food_quality) + self.sensitivity_weight*service
       else:
         pass
         # total_weight = self.noise_weight
         # self.satisfaction = self.mood - (1-self.noise_tolerance)*self.perceived_noisiness
-      yield self.env.timeout(5*60) # 5 minute loop
+      yield self.env.timeout(self.env.sim_loop_delay) # 5 minute loop
 
 
 
