@@ -217,6 +217,75 @@ function setupRestaurant(w, h) {
         }
     });
 
+    let x = marketplace_x + marketplace_width - 4 * padding;
+    let y = marketplace_y + marketplace_height - 4 * padding;
+    let placeholder_waiter = new Staff(x, y);
+    let svg_attrs = placeholder_waiter.draw();
+
+    let group = svg.append("g").attrs({
+        id: 'placeholder_waiter_'
+    })
+
+    // add the placeholder icons 
+    group.selectAll(".place_holder_waiter_icon")
+        .data(svg_attrs['data'])
+        .enter()
+        .append(svg_attrs['svg_type'])
+        .attrs(svg_attrs['shape_attrs']);
+
+    // add placeholeder text
+    group.selectAll(".place_holder_waiter_text")
+        .data(svg_attrs['data'])
+        .enter()
+        .append("text")
+        .text(svg_attrs['text'])
+        .attrs(svg_attrs['text_attrs'])
+
+    let new_svg_attrs = {}
+
+    let drag = d3.drag().on('drag', function (d) {
+            d3.select('#candidate_waiter_').select(svg_attrs['svg_type']).attrs(svg_attrs['shape_drag_attrs']);
+            d3.select('#candidate_waiter_').select('text').attrs(svg_attrs['text_drag_attrs']);
+        }).on('start', function (d) {
+            let new_item_group = svg.append("g").attrs({
+                id: 'candidate_waiter_'
+            })
+            // deep copy the svg_attrs, find better fix for this.
+            new_svg_attrs = JSON.parse(JSON.stringify(svg_attrs));
+            // create new item_icon
+            new_item_group.selectAll(".new_waiter_icon")
+                .data(new_svg_attrs['data'])
+                .enter()
+                .append(new_svg_attrs['svg_type'])
+                .attrs(new_svg_attrs['shape_attrs']);
+
+            // create new item_text
+            new_item_group.selectAll(".new_waiter_text")
+                .data(new_svg_attrs['data'])
+                .enter()
+                .append("text")
+                .text(new_svg_attrs['text'])
+                .attrs(new_svg_attrs['text_attrs'])
+        })
+        .on('end', function (d) {
+            let mouseX = d3.mouse(this)[0];
+            let mouseY = d3.mouse(this)[1];
+
+            if (mouseX < dining_width + padding && mouseX > padding && mouseY > padding && mouseY < dining_height) {
+                let new_waiter_group = d3.select("#candidate_waiter_");
+                new_waiter_group.attrs({
+                    id: 'waiter_' + dining_room.num_waiters
+                });
+                dining_room.add_staff({
+                    'waiter_svg_attrs': new_svg_attrs,
+                    'waiter_g': new_waiter_group
+                });
+            } else {
+                d3.select("#candidate_waiter_").remove();
+            }
+        })
+    group.call(drag);
+
     // setup the viz
     return dining_room;
 }
