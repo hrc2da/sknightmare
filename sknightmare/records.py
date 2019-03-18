@@ -25,7 +25,7 @@ class RestaurantDay:
         self.michelin_rating, self.michelin_count = self.get_rating("michelin", self.menu_stats)
         self.satisfaction = self.get_avg_satisfaction()[0]
         self.expenses = self.get_food_cost() + self.get_seating_cost(tables) + \
-            self.get_equipment_cost(self.env.ledger.appliances) + self.env.rent
+            self.get_equipment_cost(self.env.ledger.appliances) + self.env.rent + len(self.env.ledger.staff)*self.env.worker_wage
 
     def get_parties(self, table):
         return [p for p in self.parties if p.status >= PartyStatus.SEATED and p.table.name == table.name]

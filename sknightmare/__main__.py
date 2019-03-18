@@ -56,7 +56,7 @@ if __name__ == "__main__":
               {"name": "Table 3",
                "attributes": {"x": 0.1, "y": 0.7, "radius": 4, "seats": 5, "cost": 800, "daily_upkeep": 1}}, ]
 
-    staff = [{'x': 0.2, 'y': 0.6}]
+    staff = [{'x': 0.2, 'y': 0.6},{'x': 0.4, 'y': 0.4}]#,{'x': 0.7, 'y': 0.7}]
     r = Restaurant("Sophie's Kitchen", equipment, tables, staff)
     r.simulate(days=30)
     # r.ledger.read_messages()

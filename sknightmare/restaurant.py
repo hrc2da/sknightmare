@@ -7,7 +7,7 @@ from random_words import RandomWords
 import arrow # for nicer datetimes
 import math
 import queue
-from objects import Party, Table, Order, Appliance
+from objects import Party, Table, Order, Appliance, Staff
 from records import Ledger
 
 class Restaurant:
@@ -30,14 +30,14 @@ class Restaurant:
         "price": 10.0,
         "requirements": ["pizza"],
         "difficulty": 0.5,
-        "cost": 5.0
+        "cost": 7.0
     },
     {
         "name": "Excessive Pizza",
         "price": 60.0,
         "requirements": ["pizza"],
         "difficulty": 0.9,
-        "cost": 15
+        "cost": 30
     }
   ]
   def __init__(self, name, equipment, tables, staff, start_time='2019-01-01T00:00:00', day_log = None):
@@ -55,11 +55,12 @@ class Restaurant:
     # else:
     #   self.day_log = queue.Queue()
 
-    # sim mechanics
+    # sim mechanics note that due to dependencies, the order matters here (e.g. seating needs staff to be setup to calculate table service ratings)
     self.setup_neighborhood()
+    self.setup_staffing(staff)
     self.setup_kitchen(equipment)
     self.setup_seating(tables)
-    self.setup_staffing(staff)
+    
 
     # tools
     self.name_generator = RandomWords()
@@ -82,10 +83,12 @@ class Restaurant:
     self.env.max_budget = 100
     self.env.max_wait_time = 60
     self.env.max_noise_db = 10
-    self.env.rent = 100
+    self.env.rent = 200
+    self.env.worker_wage = 150
+    self.env.sim_loop_delay = 5*60 # in minutes
 
   def setup_staffing(self,staff):
-    self.env.staff = staff
+    self.env.ledger.staff = [Staff(s['x'],s['y']) for s in staff]
 
   def setup_kitchen(self, equipment):
     self.kitchen = simpy.FilterStore(self.env, capacity=len(equipment))
@@ -98,16 +101,18 @@ class Restaurant:
     self.seating = simpy.FilterStore(self.env, capacity=len(tables))
     self.seating.items = [Table(self.env,t["name"],t["attributes"]) for t in tables]
     self.max_table_size = max([t.seats for t in self.seating.items])
+    self.env.ledger.capacity = np.sum([t.seats for t in self.seating.items])
     self.env.ledger.set_tables( [t for t in self.seating.items] )
     for t in self.env.ledger.tables:
       t.start_simulation()
+    self.env.ledger.service_rating = np.mean([t.service_rating for t in self.env.ledger.tables])
   
   def setup_neighborhood(self):
     self.max_party_size = 10
     self.neighborhood_size = 10000
     self.max_eating_pop = 0.1*self.neighborhood_size
     self.demographics = ["size","affluence","taste","noisiness","leisureliness","patience","noise_tolerance","space_tolerance", "mood","sensitivity"] #sensitivity has to do with how much you care about service
-    self.demographic_means = np.array([0.25,0.3,0.5,0.6,0.4,0.5,0.3,0.5, 0.5, 0.5])
+    self.demographic_means = np.array([0.25,0.3,0.5,0.6,0.4,0.5,0.3,0.5, 0.5, 0.7])
                                         # size aff taste  noi   leis  pat noi_t space_t
     # self.demographic_cov = np.matrix([[ 0.02, 0.00, 0.00, 0.09, 0.02,-0.02, 0.06,-0.02], #size
     #                                   [ 0.00, 0.02, 0.10,-0.02, 0.06,-0.07,-0.07,-0.07], #affluence
@@ -209,6 +214,8 @@ class Restaurant:
     if(party_attributes["size"] > self.max_table_size):
       return False
     if party_attributes["mood"] < 1-self.env.ledger.satisfaction:
+      return False
+    if party_attributes["sensitivity"] > self.env.ledger.service_rating:
       return False
     if party_attributes["affluence"] < 0.3:
       if party_attributes["taste"] > self.env.ledger.yelp_rating:
