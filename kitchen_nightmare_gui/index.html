@@ -36,11 +36,11 @@
                     </div>
                 </div>
                 <div class="row">
-                        <div class="input-group mb-3">
-                                Number of days to simulate: <input id="days" type="number" value=14>
-                                <button id="simulate">Simulate</button>
-                                <button id="bayesopt">Ask the agent </button>
-                        </div>
+                    <div class="input-group mb-3">
+                        Number of days to simulate: <input id="days" type="number" value=14>
+                        <button id="simulate">Simulate</button>
+                        <button id="bayesopt">Ask the agent </button>
+                    </div>
                 </div>
                 <div class="row">
                     <div id="report"></div>
@@ -56,7 +56,7 @@
             </div>
             <div class="col-2">
                 <div id="reports">
-                <button id="clear_viz">Clear Tracker</button>
+                    <button id="clear_viz">Clear Tracker</button>
                 </div>
                 <button id="clearViz">Clear Tracking</button>
             </div>
@@ -85,16 +85,16 @@
             // show_sim_results(report);
         });
         //so so sorry for this :( :( :(
-        function get_valid_design(restaurants){
-            for(let i = restaurants.length-1; i>=0; i--){
+        function get_valid_design(restaurants) {
+            for (let i = restaurants.length - 1; i >= 0; i--) {
                 let r = restaurants[i];
-                if(r["equipment"].length < 1){
+                if (r["equipment"].length < 1) {
                     continue;
                 }
-                if(r["tables"].length < 1){
+                if (r["tables"].length < 1) {
                     continue;
                 }
-                if(r["waiters"].length < 1){
+                if (r["waiters"].length < 1) {
                     continue;
                 }
                 return restaurants[i];
@@ -106,26 +106,34 @@
             $("#simulate").click(() => {
                 let layout = dining_room.get_layout();
                 layout["days"] = $("#days").val();
-                $("#report").append('<span class="loading">Running Simulation...</span><img id="loading" src="loading.gif" />');
+                $("#report").append(
+                    '<span class="loading">Running Simulation...</span><img id="loading" src="loading.gif" />'
+                );
                 socket.emit('simulate', JSON.stringify(layout));
             });
-            $("#clear_viz").click(() =>{
+            $("#clear_viz").click(() => {
                 viz.clear();
             });
             $("#bayesopt").click(() => {
-                $("#report").append('<span class="loading">Agent is thinking...</span><img id="loading" src="loading.gif" />');
-                $.get("http://localhost:5000/bayesopt", (designs) =>{
+                $("#report").append(
+                    '<span class="loading">Agent is thinking...</span><img id="loading" src="loading.gif" />'
+                );
+                $.get("http://localhost:5000/bayesopt", (designs) => {
                     restaurants = JSON.parse(designs)['restaurants'];
                     let last_restaurant = get_valid_design(restaurants);
-                    if(last_restaurant == null){
+                    if (last_restaurant == null) {
                         $("#report").empty();
-                        $("#report").append('<span class="loading">No valid designs found at this time.</span>');
+                        $("#report").append(
+                            '<span class="loading">No valid designs found at this time.</span>'
+                        );
                     }
                     dining_room.load_json_layout(JSON.stringify(last_restaurant))
                     let layout = dining_room.get_layout();
                     layout["days"] = $("#days").val();
                     $("#report").empty();
-                    $("#report").append('<span class="loading">Got a design. Running Simulation...</span><img id="loading" src="loading.gif" />');
+                    $("#report").append(
+                        '<span class="loading">Got a design. Running Simulation...</span><img id="loading" src="loading.gif" />'
+                    );
                     socket.emit('simulate', JSON.stringify(layout));
                 });
             });

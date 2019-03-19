@@ -32,10 +32,10 @@ class TrackingGraph {
     this.line_generator = (day_scale, attribute_scale, attribute_name) => {
       return d3
         .line()
-        .x(function(d) {
+        .x(function (d) {
           return day_scale(d.day);
         })
-        .y(function(d) {
+        .y(function (d) {
           return attribute_scale(d[attribute_name]);
         });
     };
@@ -58,7 +58,7 @@ class TrackingGraph {
       .attr("y", this.y + this.padding)
       .attr("fill", "black")
       .text(this.name);
-    
+
     svg
       .append("g")
       .attr("class", "x_axis")
@@ -112,6 +112,9 @@ class TrackingGraph {
     if (report[this.attribute] > this.max_val) {
       this.max_val = report[this.attribute];
     }
+    if (report[this.attribute] < this.min_val) {
+      this.min_val = report[this.attribute];
+    }
   };
   clear = () => {
     this.data = [];
@@ -144,7 +147,7 @@ class TrackingGraph {
       .append("g")
       .attr("class", "x_axis")
       .attr("id", "x_axis_" + this.id)
-      .attr("transform", "translate(0," + (this.y + this.height) + ")")
+      .attr("transform", "translate(0," + (attribute_scale(0)) + ")")
       .call(xAxis);
 
     // Add the Y Axis
@@ -315,39 +318,39 @@ function showReport(report) {
   );
   $("#ratings").append(
     "<p>Average Wait Time: " +
-      report["wait_times"][0].toLocaleString(undefined, {
-        maximumFractionDigits: 2
-      }) +
-      "</p>"
+    report["wait_times"][0].toLocaleString(undefined, {
+      maximumFractionDigits: 2
+    }) +
+    "</p>"
   );
   $("#ratings").append(
     "<p>Average Group Size: " +
-      report["avg_party_size"].toLocaleString(undefined, {
-        maximumFractionDigits: 2
-      }) +
-      "</p>"
+    report["avg_party_size"].toLocaleString(undefined, {
+      maximumFractionDigits: 2
+    }) +
+    "</p>"
   );
   $("#finances").append("<h3>Finances</h3>");
   $("#finances").append(
     "<p>Total Revenue: <span class='revenue'>$" +
-      report["revenue"].toLocaleString(undefined, {
-        maximumFractionDigits: 2
-      }) +
-      "</span></p>"
+    report["revenue"].toLocaleString(undefined, {
+      maximumFractionDigits: 2
+    }) +
+    "</span></p>"
   );
   $("#finances").append(
     "<p>Upfront Costs: <span class='expenses'>$" +
-      report["upfront_costs"].toLocaleString(undefined, {
-        maximumFractionDigits: 2
-      }) +
-      "</span></p>"
+    report["upfront_costs"].toLocaleString(undefined, {
+      maximumFractionDigits: 2
+    }) +
+    "</span></p>"
   );
   $("#finances").append(
     "<p>Staffing, Food, and Upkeep Costs: <span class='expenses'>$" +
-      report["total_overhead"].toLocaleString(undefined, {
-        maximumFractionDigits: 2
-      }) +
-      "</span></p>"
+    report["total_overhead"].toLocaleString(undefined, {
+      maximumFractionDigits: 2
+    }) +
+    "</span></p>"
   );
   let profitability = "expenses";
   if (report["profit"] > 0) {
@@ -355,9 +358,11 @@ function showReport(report) {
   }
   $("#finances").append(
     "<p>Profit: <span class='" +
-      profitability +
-      "'>$" +
-      report["profit"].toLocaleString(undefined, { maximumFractionDigits: 2 }) +
-      "</span></p>"
+    profitability +
+    "'>$" +
+    report["profit"].toLocaleString(undefined, {
+      maximumFractionDigits: 2
+    }) +
+    "</span></p>"
   );
 }
