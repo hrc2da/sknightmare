@@ -56,6 +56,7 @@
             </div>
             <div class="col-2">
                 <div id="reports">
+                <button id="clear_viz">Clear Tracker</button>
                 </div>
             </div>
         </div>
@@ -87,6 +88,9 @@
                 let layout = dining_room.get_layout();
                 layout["days"] = $("#days").val();
                 socket.emit('simulate', JSON.stringify(layout));
+            });
+            $("#clear_viz").click(() =>{
+                viz.clear();
             });
         });
         let restaurants = {};
