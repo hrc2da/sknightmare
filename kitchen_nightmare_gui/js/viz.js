@@ -29,7 +29,6 @@ class TrackingGraph {
         .range([this.y + this.padding, this.y + this.height]);
     };
     this.data = [];
-
     this.line_generator = (day_scale, attribute_scale, attribute_name) => {
       return d3
         .line()
@@ -59,7 +58,7 @@ class TrackingGraph {
       .attr("y", this.y + this.padding)
       .attr("fill", "black")
       .text(this.name);
-
+    
     svg
       .append("g")
       .attr("class", "x_axis")
