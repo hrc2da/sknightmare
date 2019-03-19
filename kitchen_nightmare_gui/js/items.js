@@ -6,7 +6,7 @@ class Item {
         this.attributes = attributes;
         this.x_original = x;
         this.y_original = y;
-        this.path = this.attributes['path'];
+        this.path = "svgs/" + name + ".svg";
     }
 
     draw = () => {

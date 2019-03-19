@@ -221,7 +221,8 @@ class DiningRoom {
         };
 
         for (let item of item_info) {
-            let item_obj = new Item('rect', item['name'], 35, item['attributes'], Math.random() * this.width, Math.random() * this.height);
+            let item_obj = new Item('image', item['name'], 35, item['attributes'], Math.random() * this.width, Math.random() * this.height);
+            console.log(item_obj);
             let svg_attrs = item_obj.draw();
             let group = svg.append("g").attrs({
                 id: "new_item_" + dining_room.num_items
