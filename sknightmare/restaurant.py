@@ -112,7 +112,7 @@ class Restaurant:
     self.neighborhood_size = 10000
     self.max_eating_pop = 0.1*self.neighborhood_size
     self.demographics = ["size","affluence","taste","noisiness","leisureliness","patience","noise_tolerance","space_tolerance", "mood","sensitivity"] #sensitivity has to do with how much you care about service
-    self.demographic_means = np.array([0.25,0.3,0.5,0.6,0.4,0.5,0.3,0.5, 0.5, 0.7])
+    self.demographic_means = np.array([0.25,0.3,0.5,0.6,0.4,0.5,0.3,0.5, 0.5, 0.6])
                                         # size aff taste  noi   leis  pat noi_t space_t
     # self.demographic_cov = np.matrix([[ 0.02, 0.00, 0.00, 0.09, 0.02,-0.02, 0.06,-0.02], #size
     #                                   [ 0.00, 0.02, 0.10,-0.02, 0.06,-0.07,-0.07,-0.07], #affluence
