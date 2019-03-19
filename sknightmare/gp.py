@@ -2,8 +2,14 @@ from skopt import gp_minimize
 from skopt.space import Real, Integer, Categorical
 import time
 from restaurant import Restaurant
-from skopt.plots import plot_convergence
+import matplotlib as mpl
+mpl.use('TkAgg')
 from matplotlib import pyplot as plt
+
+from skopt.plots import plot_convergence
+
+
+
 import json
 
 

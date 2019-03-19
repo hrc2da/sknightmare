@@ -17,3 +17,11 @@ body {
     stroke-width: 2;
     fill: none;
 }
+
+.expenses {
+    color: red
+}
+
+.revenue {
+    color: green
+}

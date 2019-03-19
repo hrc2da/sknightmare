@@ -226,6 +226,23 @@ class RestaurantDay:
             return 0
         else:
             return np.mean(paid)
+
+    def get_total_individual_entries(self):
+        if len(self.parties) < 1:
+            return 0
+        else:
+            return np.sum([p.size for p in self.parties])
+
+    def get_total_individual_paying_customers(self):
+        paid = [p.size for p in self.parties if p.status >= PartyStatus.PAID]
+        if len(paid) < 1:
+            return 0
+        else:
+            return np.sum(paid)
+
+    def get_num_entered_parties(self):
+      return len(self.parties)
+
     def get_report(self):
 
         return {
@@ -241,7 +258,8 @@ class RestaurantDay:
             'expenses': self.expenses,
             'revenue': self.get_total_revenue(),
             'profit': self.get_total_revenue()-self.expenses,
-            'noise': self.get_received_noise()
+            'noise': self.get_received_noise(),
+            'satisfaction': self.get_avg_satisfaction()[0]
         }
 
 
@@ -365,7 +383,15 @@ class Ledger:
         wait_times, wt_stds = zip(*[d.get_avg_wait_time() for d in days])
         satisfactions, s_stds = zip(*[d.get_avg_satisfaction() for d in days])
         expenses = [d.expenses for d in days]
+        total_customers = np.sum([d.get_total_individual_paying_customers() for d in days])
+        total_entered_customers = np.sum([d.get_total_individual_entries() for d in days])
+        daily_customers = total_customers/len(days)
+        avg_price = revenue/total_customers
 
+        num_parties = np.sum([d.get_num_entered_parties() for d in days])
+        avg_party_size = total_entered_customers/num_parties
+
+        noise = np.mean([d.get_received_noise() for d in days])
         report = {"revenue": float(revenue),
                     "cook_times": [float(np.mean(cook_times)), float(np.std(cook_times))],
                     "wait_times": [float(np.mean(wait_times)), float(np.std(wait_times))],
@@ -377,7 +403,16 @@ class Ledger:
                     "satisfaction": float(self.satisfaction),
                     "total_overhead": float(np.sum(expenses)),
                     "upfront_costs": float(self.upfront_costs),
-                    "profit": float(revenue-self.upfront_costs-np.sum(expenses))
+                    "profit": float(revenue-self.upfront_costs-np.sum(expenses)),
+                    "num_days": len(days),
+                    "avg_check": float(avg_price),
+                    "avg_normalized_check": float(min(avg_price/self.env.max_budget,1)),
+                    "total_customers": float(total_customers),
+                    "daily_customers": float(daily_customers),
+                    "avg_party_size": float(avg_party_size),
+                    "avg_noise": float(noise),
+                    "num_parties": float(num_parties),
+                    "service_rating": self.service_rating
                   }
         for entry in report:
             if self.verbose == True:
