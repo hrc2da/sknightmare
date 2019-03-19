@@ -4,7 +4,8 @@ class Staff {
         this.size = 25;
         this.x_original = x;
         this.y_original = y;
-        this.path = 'svgs/waiter.svg'
+        this.path = 'svgs/waiter.svg';
+        this.range = 50;
     }
 
     draw = () => {
@@ -36,6 +37,16 @@ class Staff {
             y: function (d) {
                 d.y = d3.mouse(this)[1]
                 return d.y
+            },
+        }
+        attrs['bounds_drag_attrs'] = {
+            cx: function (d) {
+                d.x = d3.mouse(this)[0]
+                return d.x + 12.5;
+            },
+            cy: function (d) {
+                d.y = d3.mouse(this)[1]
+                return d.y + 12.5;
             },
         }
         attrs['shape_attrs'] = shape_attrs;
