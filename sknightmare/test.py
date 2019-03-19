@@ -1,4 +1,4 @@
-import Restauraunt
+from restaurant import Restaurant
 
 equipment = [{"name": "Lame Pizza Oven",
               "attributes": {"capabilities": ["oven", "pizza", "steak"],
