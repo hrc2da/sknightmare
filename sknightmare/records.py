@@ -415,7 +415,7 @@ class Ledger:
                     "service_rating": self.service_rating
                   }
         for entry in report:
-            if self.verbose == True:
+            if self.verbose == False:
                 self.print("{}:{}".format(entry, report[entry]))
             else:
                 print("{}:{}".format(entry, report[entry]))
