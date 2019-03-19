@@ -58,7 +58,6 @@
                 <div id="reports">
                     <button id="clear_viz">Clear Tracker</button>
                 </div>
-                <button id="clearViz">Clear Tracking</button>
             </div>
         </div>
     </div>
@@ -86,31 +85,19 @@
             // show_sim_results(report);
         });
         //so so sorry for this :( :( :(
-<<<<<<< HEAD
         function get_valid_design(restaurants){
             let max_profit = -restaurants[restaurants.length-1]["profit"];
             let max_profit_i = restaurants.length-1;
             let found_valid = false;
             for(let i = restaurants.length-1; i>=0; i--){
-=======
-        function get_valid_design(restaurants) {
-            for (let i = restaurants.length - 1; i >= 0; i--) {
->>>>>>> 60d507a3255f86547054d07b24403be35f4aec91
                 let r = restaurants[i];
                 if (r["equipment"].length < 1) {
                     continue;
                 }
-<<<<<<< HEAD
                 else if(r["tables"].length < 1){
                     continue;
                 }
                 else if(r["waiters"].length < 1){
-=======
-                if (r["tables"].length < 1) {
-                    continue;
-                }
-                if (r["waiters"].length < 1) {
->>>>>>> 60d507a3255f86547054d07b24403be35f4aec91
                     continue;
                 }
                 else{
