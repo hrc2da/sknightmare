@@ -6,6 +6,7 @@ class Item {
         this.attributes = attributes;
         this.x_original = x;
         this.y_original = y;
+        this.path = this.attributes['path'];
     }
 
     draw = () => {
@@ -20,7 +21,7 @@ class Item {
             'text_pad': this.size + 15,
             'attributes': this.attributes
         }];
-        if (svg_type == 'rect') {
+        if (svg_type == 'image') {
             let shape_attrs = {
                 x: function (d) {
                     return d.x - d.size;
@@ -30,6 +31,7 @@ class Item {
                 },
                 width: this.size * 2,
                 height: this.size * 2,
+                "xlink:href": this.path
             };
             attrs['shape_drag_attrs'] = {
                 x: function (d) {
