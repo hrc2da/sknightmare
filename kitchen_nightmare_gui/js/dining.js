@@ -130,21 +130,25 @@ class DiningRoom {
             waiter_data["x"],
             waiter_data["y"]
         );
+
+        let taper = 10;
+        for (let i = 1; i <= taper; i++) {
+            waiter_g.selectAll(".waiter_bounds_" + i).data([waiter_data]).enter().append('circle').attrs({
+                cx: (d) => {
+                    return d.x + added_waiter.size / 2;
+                },
+                cy: (d) => {
+                    return d.y + added_waiter.size / 2;
+                },
+                class: "waiter_bounds",
+                r: added_waiter.range * (i / taper),
+                fill: 'steelblue',
+                opacity: 0.1
+            })
+        }
+
         let waiter_svg_attrs = added_waiter.draw();
         waiter_data = waiter_svg_attrs["data"][0];
-
-        waiter_g.selectAll(".waiter_bounds").data([waiter_data]).enter().append('circle').attrs({
-            cx: (d) => {
-                return d.x + added_waiter.size / 2;
-            },
-            cy: (d) => {
-                return d.y + added_waiter.size / 2;
-            },
-            class: "waiter_bounds",
-            r: added_waiter.range,
-            fill: 'steelblue',
-            opacity: 0.1
-        })
 
         // add drag handling to the table object
         let drag = d3

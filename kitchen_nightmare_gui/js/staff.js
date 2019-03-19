@@ -5,7 +5,7 @@ class Staff {
         this.x_original = x;
         this.y_original = y;
         this.path = 'svgs/waiter.svg';
-        this.range = 50;
+        this.range = 75;
     }
 
     draw = () => {
