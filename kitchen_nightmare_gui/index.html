@@ -7,8 +7,7 @@
     <title>Sophie's Kitchen Nightmare</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="style/style.css">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons"
-      rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.7.0/d3.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
     <script src="http://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
@@ -33,14 +32,14 @@
         <div class="row">
             <div class="col-9">
                 <div class="row">
-                        <div id="window">
-                            </div>
+                    <div id="window">
+                    </div>
                 </div>
                 <div class="row">
-                        <div class="input-group mb-3">
-                                Number of days to simulate: <input id="days" type="number">
-                            </div>
-                            <button id="simulate">Simulate</button>
+                    <div class="input-group mb-3">
+                        Number of days to simulate: <input id="days" type="number">
+                    </div>
+                    <button id="simulate">Simulate</button>
                 </div>
                 <div class="row">
                     <div id="report"></div>
@@ -52,11 +51,12 @@
                         </div>
                     </div>
                 </div>
-                
+
             </div>
             <div class="col-2">
                 <div id="reports">
                 </div>
+                <button id="clearViz">Clear Tracking</button>
             </div>
         </div>
     </div>
@@ -87,6 +87,9 @@
                 let layout = dining_room.get_layout();
                 layout["days"] = $("#days").val();
                 socket.emit('simulate', JSON.stringify(layout));
+            });
+            $("#clearViz").click(() => {
+                let layout = viz.clear();
             });
         });
         let restaurants = {};
