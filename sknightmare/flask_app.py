@@ -34,7 +34,9 @@ def hello():
 
 @app.route('/bayesopt', methods=['GET'])
 def bayesopt():
-    return run_gp_flask()
+    res = run_gp_flask()
+    print("RES:", res)
+    return json.dumps(res)
 
 
 @socketio.on('connect')

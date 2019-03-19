@@ -1,16 +1,12 @@
+import json
+from skopt.plots import plot_convergence
+from matplotlib import pyplot as plt
 from skopt import gp_minimize
 from skopt.space import Real, Integer, Categorical
 import time
 from restaurant import Restaurant
 import matplotlib as mpl
 mpl.use('TkAgg')
-from matplotlib import pyplot as plt
-
-from skopt.plots import plot_convergence
-
-
-
-import json
 
 
 def construct_equipment(table_type):
@@ -68,6 +64,7 @@ def construct_restaurant_json(x):
 def construct_restaurant(x):
     r_json = construct_restaurant_json(x)
     r = Restaurant("Sophie's Kitchen", r_json["equipment"], r_json["tables"], r_json["waiters"])
+    r.env.ledger.verbose = False
     return r
 
 
