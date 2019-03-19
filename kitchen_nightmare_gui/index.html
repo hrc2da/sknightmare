@@ -39,8 +39,9 @@
                 <div class="row">
                         <div class="input-group mb-3">
                                 Number of days to simulate: <input id="days" type="number">
-                            </div>
-                            <button id="simulate">Simulate</button>
+                                <button id="simulate">Simulate</button>
+                        </div>
+                        
                 </div>
                 <div class="row">
                     <div id="report"></div>
@@ -78,6 +79,7 @@
         });
         socket.on('sim_report', function (report) {
             console.log(report);
+            $('#report').empty()
             showReport(report);
             //$("#report").text(JSON.stringify(report));
             // show_sim_results(report);
@@ -87,6 +89,7 @@
             $("#simulate").click(() => {
                 let layout = dining_room.get_layout();
                 layout["days"] = $("#days").val();
+                $("#report").append('<span class="loading">Running Simulation...</span><img id="loading" src="loading.gif" />');
                 socket.emit('simulate', JSON.stringify(layout));
             });
             $("#clear_viz").click(() =>{

@@ -1,27 +1,30 @@
 #title {
-    color: rgb(100, 100, 100);
+  color: rgb(100, 100, 100);
 }
 
 body {
-    font-family: 'Playfair Display', monospace;
-    background-color: white !important;
+  font-family: "Playfair Display", monospace;
+  background-color: white !important;
 }
 
-
 .table_form {
-    margin-bottom: 1em;
+  margin-bottom: 1em;
 }
 
 .graph_path {
-    stroke: steelblue;
-    stroke-width: 2;
-    fill: none;
+  stroke: steelblue;
+  stroke-width: 2;
+  fill: none;
 }
 
 .expenses {
-    color: red
+  color: red;
 }
 
 .revenue {
-    color: green
+  color: green;
+}
+
+.loading {
+  font-size: 2em;
 }
