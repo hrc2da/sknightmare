@@ -75,6 +75,7 @@
             console.log(sess_id);
         });
         socket.on('day_report', function (report) {
+            console.log(report);
             viz.update(report);
         });
         socket.on('sim_report', function (report) {
