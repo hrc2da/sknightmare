@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.com/hrc2da/sknightmare.svg?branch=master)](https://travis-ci.com/hrc2da/sknightmare)
 # sknightmare
 
 Sophie's Kitchen Nightmare Restaurant Simulator
