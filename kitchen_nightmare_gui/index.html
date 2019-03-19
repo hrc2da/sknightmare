@@ -87,18 +87,31 @@
         });
         //so so sorry for this :( :( :(
         function get_valid_design(restaurants){
+            let max_profit = -restaurants[restaurants.length-1]["profit"];
+            let max_profit_i = restaurants.length-1;
+            let found_valid = false;
             for(let i = restaurants.length-1; i>=0; i--){
                 let r = restaurants[i];
                 if(r["equipment"].length < 1){
                     continue;
                 }
-                if(r["tables"].length < 1){
+                else if(r["tables"].length < 1){
                     continue;
                 }
-                if(r["waiters"].length < 1){
+                else if(r["waiters"].length < 1){
                     continue;
                 }
-                return restaurants[i];
+                else{
+                    found_valid = true;
+                }
+                if(-r["profit"] > max_profit){
+                    max_profit = -r["profit"];
+                    max_profit_i = i
+
+                }
+            }
+            if(found_valid == true){
+                return restaurants[max_profit_i];
             }
             //no valid designs--throw an exception here?
             return null;

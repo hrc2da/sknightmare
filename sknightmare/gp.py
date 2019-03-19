@@ -35,7 +35,7 @@ def construct_waiter(x, y):
     return {"x": x, "y": y}
 
 
-def construct_restaurant_json(x):
+def construct_restaurant_json(x, profit):
     equipment = []
     tables = []
     waiters = []
@@ -57,12 +57,13 @@ def construct_restaurant_json(x):
             tables.append(construct_table(x[i], x[i+1], seats, cost))
         if i >= 16 and x[i] >= 0 and x[i+1] > 0:
             waiters.append({"x": x[i], "y": x[i+1]})
-    r_json = {"tables": tables, "equipment": equipment, "waiters": waiters}
+
+    r_json = {"tables": tables, "equipment": equipment, "waiters": waiters, "profit": float(profit)}
     return r_json
 
 
 def construct_restaurant(x):
-    r_json = construct_restaurant_json(x)
+    r_json = construct_restaurant_json(x, 0)
     r = Restaurant("Sophie's Kitchen", r_json["equipment"], r_json["tables"], r_json["waiters"])
     r.env.ledger.verbose = False
     return r
@@ -71,11 +72,12 @@ def construct_restaurant(x):
 def reward(x):
     try:
         r = construct_restaurant(x)
-        r.simulate(days=14)
+        r.simulate(days=7)
         report = r.env.ledger.generate_final_report()
         return -1*report["profit"]
-    except:
-        return 10000
+    except Exception as e:
+        print("exception", e)
+        return 10000000
 
 
 def run_gp_agent():
@@ -98,9 +100,10 @@ def run_gp_flask():
     i_dim = Integer(0, 1)
     bounds = [i_dim, i_dim, r_dim, r_dim, r_dim, r_dim, r_dim, r_dim, r_dim, r_dim,
               r_dim, r_dim, r_dim, r_dim, r_dim, r_dim, r_dim, r_dim, r_dim, r_dim]
-    res = gp_minimize(reward, bounds, acq_func="EI", n_random_starts=10, n_calls=50, random_state=int(time.time()))
+    res = gp_minimize(reward, bounds, acq_func="EI", n_random_starts=10, n_calls=200, random_state=int(time.time()))
+    profits = res.func_vals
     explored_points = res.x_iters
-    return {"restaurants": [construct_restaurant_json(x) for x in explored_points]}
+    return {"restaurants": [construct_restaurant_json(x, profits[i]) for i, x in enumerate(explored_points)]}
 
 
 if __name__ == "__main__":
