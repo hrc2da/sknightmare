@@ -1,9 +1,10 @@
 class Staff {
     constructor(x, y) {
-        this.type = 'circle';
-        this.size = 15;
+        this.type = 'image';
+        this.size = 25;
         this.x_original = x;
         this.y_original = y;
+        this.path = 'svgs/waiter.svg'
     }
 
     draw = () => {
@@ -17,47 +18,27 @@ class Staff {
             'text_pad': 6,
         }];
         let shape_attrs = {
-            cx: function (d) {
+            x: function (d) {
                 return d.x
             },
-            cy: function (d) {
+            y: function (d) {
                 return d.y
             },
-            r: this.size
+            height: this.size,
+            width: this.size,
+            "xlink:href": this.path
         };
         attrs['shape_drag_attrs'] = {
-            cx: function (d) {
+            x: function (d) {
                 d.x = d3.mouse(this)[0]
                 return d.x
             },
-            cy: function (d) {
+            y: function (d) {
                 d.y = d3.mouse(this)[1]
                 return d.y
             },
         }
         attrs['shape_attrs'] = shape_attrs;
-        attrs['text'] = "W";
-        attrs['text_attrs'] = {
-            x: function (d) {
-                return d.x - d.text_pad;
-            },
-
-            y: function (d) {
-                return d.y + d.text_pad;
-            },
-            fill: 'white'
-        }
-        attrs['text_drag_attrs'] = {
-            x: function (d) {
-                d.x = d3.mouse(this)[0] - d.text_pad;
-                return d.x;
-            },
-
-            y: function (d) {
-                d.y = d3.mouse(this)[1] + d.text_pad;
-                return d.y;
-            },
-        }
         return attrs;
     }
 }

@@ -34,10 +34,10 @@ class TrackingGraph {
         this.line_generator = (day_scale, attribute_scale, attribute_name) => {
             return d3
                 .line()
-                .x(function(d) {
+                .x(function (d) {
                     return day_scale(d.day);
                 })
-                .y(function(d) {
+                .y(function (d) {
                     return attribute_scale(d[attribute_name]);
                 });
         };
