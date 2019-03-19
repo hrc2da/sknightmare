@@ -100,7 +100,7 @@ def run_gp_flask():
     i_dim = Integer(0, 1)
     bounds = [i_dim, i_dim, r_dim, r_dim, r_dim, r_dim, r_dim, r_dim, r_dim, r_dim,
               r_dim, r_dim, r_dim, r_dim, r_dim, r_dim, r_dim, r_dim, r_dim, r_dim]
-    res = gp_minimize(reward, bounds, acq_func="EI", n_random_starts=10, n_calls=200, random_state=int(time.time()))
+    res = gp_minimize(reward, bounds, acq_func="EI", n_random_starts=10, n_calls=50, random_state=int(time.time()))
     profits = res.func_vals
     explored_points = res.x_iters
     return {"restaurants": [construct_restaurant_json(x, profits[i]) for i, x in enumerate(explored_points)]}
