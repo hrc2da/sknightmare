@@ -309,7 +309,7 @@ class Party:
     self.status = PartyStatus.EATING
     # self.satisfaction += np.mean(order.satisfactions) #should consider wait time here as well
     self.bill = self.order.bill
-    yield self.env.timeout(10*60*self.size*self.leisureliness)
+    yield self.env.timeout(30*60*self.size*self.leisureliness)
     self.eating_time = self.env.m_current_time()-start_time
   
   def leave(self, seating):
