@@ -17,7 +17,27 @@ class Restaurant:
 
   '''
   waiting_list_max = 20
-  menu_items = [
+  drink_menu = [
+    {
+      "name": "Beer",
+      "price": 6.0,
+      "requirements": ["alcohol"],
+      "type": "alcohol",
+      "cook_time": 2,
+      "difficulty": 0,
+      "cost": 1.0
+    },
+    {
+      "name": "Vodka",
+      "price": 8.0,
+      "requirements": ["alcohol"],
+      "type": "alcohol",      
+      "cook_time": 2,
+      "difficulty": 0,
+      "cost": 2.5
+    }
+  ]
+  food_menu = [
     {
         "name": "Pizza Slice",
         "price": 2.0,
@@ -55,10 +75,14 @@ class Restaurant:
         "cost": 8
     }
   ]
-  def __init__(self, name, equipment, tables, staff, start_time='2019-01-01T00:00:00', day_log = None):
+  def __init__(self, name, equipment, tables, staff, start_time='2019-01-01T00:00:00', day_log = None, food_menu = None, drink_menu = None, verbose=False):
     self.env = simpy.Environment()
     self.setup_constants()
-    self.ledger = Ledger(self.env, self.menu_items,verbose=False,save_messages=True, rdq = day_log)
+    if food_menu:
+      self.food_menu = food_menu
+    if drink_menu:
+      self.drink_menu = drink_menu
+    self.ledger = Ledger(self.env, self.food_menu,self.drink_menu,verbose=verbose,save_messages=True, rdq = day_log)
     self.env.ledger = self.ledger
     self.env.day = 0 # just a counter for the number of days
     self.name = name
@@ -108,8 +132,9 @@ class Restaurant:
   def setup_kitchen(self, equipment):
     self.kitchen = simpy.FilterStore(self.env, capacity=len(equipment))
     self.kitchen.items = [Appliance(self.env,e["name"],e["attributes"]) for e in equipment]
-    self.menu_items = [m for m in self.menu_items if any(all(req in appliance.capabilities for req in m["requirements"]) for appliance in self.kitchen.items)]
-    self.env.ledger.print("Menu: {}".format(self.menu_items))
+    self.food_menu = [m for m in self.food_menu if any(all(req in appliance.capabilities for req in m["requirements"]) for appliance in self.kitchen.items)]
+    self.drink_menu = [d for d in self.drink_menu if any(all(req in appliance.capabilities for req in d["requirements"]) for appliance in self.kitchen.items)]
+    self.env.ledger.print("Menu: {}".format(self.food_menu))
     self.env.ledger.set_appliances( [a for a in self.kitchen.items] )
 
   def setup_seating(self, tables):
@@ -166,6 +191,8 @@ class Restaurant:
     return self.name_generator.random_word()
   
   def handle_party(self, party):
+    if len(self.drink_menu) > 0:
+      self.env.process(party.start_ordering_drinks(self.kitchen,self.drink_menu))
     seated = yield self.env.process(party.wait_for_table(self.seating))
     if seated == False:
       check,satisfaction = yield self.env.process(party.leave(self.seating))
@@ -173,10 +200,16 @@ class Restaurant:
       self.seated_parties.append(party)
       noise_process = self.env.process(party.update_satisfaction(self.env.ledger.tables))  
       # order = Order(self.env,self.rw(),party,party.table)
-      # yield self.env.process(order.place_order(self.kitchen,self.menu_items))
-      yield self.env.process(party.place_order(self.kitchen,self.menu_items))
-      # self.order_log.append(order)  
-      yield self.env.process(party.eat())
+      # yield self.env.process(order.place_order(self.kitchen,self.food_menu))
+      if len(self.food_menu) > 0:
+        # if there is a kitchen, then order food
+        yield self.env.process(party.place_order(self.kitchen,self.food_menu))
+        # self.order_log.append(order)  
+        yield self.env.process(party.eat())
+      # if there is no kitcehn, but there is a bar, sit for awhile (while ordering drinks)
+      # or if there is no anything, just sit here awkwardly for a bit I suppose
+      else:
+        yield self.env.process(party.chill())
       check,satisfaction = yield self.env.process(party.leave(self.seating))
     self.checks.append(check)
     self.satisfaction_scores.append(satisfaction)
