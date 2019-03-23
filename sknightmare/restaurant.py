@@ -22,6 +22,7 @@ class Restaurant:
         "name": "Pizza Slice",
         "price": 2.0,
         "requirements": ["pizza"],
+        "type": "pizza",
         "cook_time": 5, #in minutes
         "difficulty": 0.1,
         "cost": 1.0
@@ -30,6 +31,7 @@ class Restaurant:
         "name": "Personal Pan Pizza",
         "price": 10.0,
         "requirements": ["pizza"],
+        "type": "pizza",
         "difficulty": 0.5,
         "cook_time": 10,
         "cost": 7.0
@@ -38,6 +40,7 @@ class Restaurant:
         "name": "Wood-Fired Pizza",
         "price": 60.0,
         "requirements": ["pizza", "brick_oven"],
+        "type": "pizza",
         "cook_time":15,
         "difficulty": 0.9,
         "cost": 30
@@ -46,6 +49,7 @@ class Restaurant:
         "name": "Sushi",
         "price": 15.0,
         "requirements": ["sushi"],
+        "type": "sushi",
         "cook_time":15,
         "difficulty": 0.9,
         "cost": 8

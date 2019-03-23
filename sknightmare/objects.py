@@ -112,16 +112,18 @@ class Appliance:
     difficulty_diff = item["difficulty"] - self.difficulty_rating
     if difficulty_diff > 0:
         difficulty_penalty -= difficulty_diff  
-    order.quality = np.clip(self.quality.rvs()*difficulty_penalty,0,1)
+    qmean = self.capabilities[item["type"]]["quality_mean"]
+    qstd = self.capabilities[item["type"]]["quality_std"]
+    ctmean = self.capabilities[item["type"]]["cook_time_mult"]*item["cook_time"]
+    ctstd = self.capabilities[item["type"]]["cook_time_std"]
+    order.quality = np.clip(np.random.normal(loc=qmean, scale=qstd)*difficulty_penalty,0,1)
     # TODO: add dependency on item cook time
-    order.cook_time = int(max(0.5,self.cook_time.rvs())*item["cook_time"])
+    order.cook_time = int(max(0.5,np.random.normal(loc=ctmean, scale=ctstd)))
     yield self.env.timeout(order.cook_time*60)
   def parse_attributes(self,attributes):
     self.x = attributes["x"]
     self.y = attributes["y"]
     self.capabilities = attributes["capabilities"]
-    self.cook_time = norm(attributes["cook_time_mean"],attributes["cook_time_std"])
-    self.quality = norm(attributes["quality_mean"],attributes["quality_std"])
     self.difficulty_rating = attributes["difficulty_rating"]
     self.daily_upkeep = attributes["daily_upkeep"]
     self.cost = attributes["cost"]
@@ -229,7 +231,7 @@ class Table:
         dist = self.appliance_distances[a.name]
         assert dist != 0
         current_noise += min(a.get_generated_noise()/dist,self.env.max_noise_db)
-    self.received_noise.append(current_noise)
+    self.received_noise.append(max(0,current_noise))
 
   def update_crowding(self):
     # this goes up based on whether nearby tables are occupied or not
@@ -397,7 +399,7 @@ class Party:
       if self.status == PartyStatus.SEATED or self.status == PartyStatus.ORDERED:
         total_weight = self.patience_weight + self.noise_weight + self.sensitivity
         current_wait = self.env.m_current_time() - self.wait_start_time
-        self.satisfaction = (1-total_weight)*self.satisfaction + self.patience_weight*(1-current_wait.total_seconds()/self.max_wait_tolerance) + self.noise_weight*(1-self.perceived_noisiness/self.max_noise_level)
+        self.satisfaction = (1-total_weight)*self.satisfaction + self.patience_weight*(1-min(1,current_wait.total_seconds()/self.max_wait_tolerance)) + self.noise_weight*(1-min(1,self.perceived_noisiness/self.max_noise_level))
         self.satisfaction += self.sensitivity_weight*service #split onto a second line just for readability
       elif self.status == PartyStatus.EATING:
         total_weight = self.noise_weight + self.taste_weight + self.sensitivity
@@ -405,7 +407,8 @@ class Party:
           food_quality = np.mean(self.order.qualities)
         else:
           food_quality = 0
-        self.satisfaction = (1-total_weight)*self.satisfaction + self.noise_weight*(1-self.perceived_noisiness/self.max_noise_level) +self.taste_weight*(food_quality) + self.sensitivity_weight*service
+          
+        self.satisfaction = (1-total_weight)*self.satisfaction + self.noise_weight*(1-min(1,self.perceived_noisiness/self.max_noise_level)) +self.taste_weight*(food_quality) + self.sensitivity_weight*service
       else:
         pass
         # total_weight = self.noise_weight
