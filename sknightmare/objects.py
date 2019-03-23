@@ -223,12 +223,12 @@ class Table:
       if t != self:
         dist = self.table_distances[t.name]
         assert dist != 0
-        current_noise += t.get_generated_noise()/dist
+        current_noise += min(t.get_generated_noise()/dist,self.env.max_noise_db) # capping received noise at max level to prevent exploding noise on overlaps
     if self.env.ledger.appliances:
       for a in self.env.ledger.appliances:
         dist = self.appliance_distances[a.name]
         assert dist != 0
-        current_noise += a.get_generated_noise()/dist
+        current_noise += min(a.get_generated_noise()/dist,self.env.max_noise_db)
     self.received_noise.append(current_noise)
 
   def update_crowding(self):
@@ -259,7 +259,7 @@ class Table:
         assert sqrdist > 0
         self.table_distances[t.name] = sqrdist
     for a in self.env.ledger.appliances:
-      sqrdist = np.linalg.norm(((a.x - self.x), (a.y - self.y)),2)
+      sqrdist = max(0.01,np.linalg.norm(((a.x - self.x), (a.y - self.y)),2)) # assuming the only on-top overlaps are from appliance/table hybrids like bars
       assert sqrdist > 0
       self.appliance_distances[a.name] = sqrdist
 

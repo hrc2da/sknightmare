@@ -8,7 +8,8 @@
     "cost": 250,
     "daily_upkeep": 1,
     "noisiness": 1,
-    "privacy": 1
+    "privacy": 1,
+    "appliances": []
   },
   "2": {
     "type": "image",
@@ -19,7 +20,8 @@
     "cost": 250,
     "daily_upkeep": 1,
     "noisiness": 1,
-    "privacy": 1
+    "privacy": 1,
+    "appliances": []
   },
 
   "5": {
@@ -31,7 +33,8 @@
     "cost": 600,
     "daily_upkeep": 1,
     "noisiness": 1,
-    "privacy": 1
+    "privacy": 1,
+    "appliances": []
   },
   "6": {
     "type": "image",
@@ -42,29 +45,75 @@
     "cost": 1050,
     "daily_upkeep": 1,
     "noisiness": 1,
-    "privacy": 1
+    "privacy": 1,
+    "appliances": []
   },
 
   "9": {
     "type": "image",
     "size": 40,
     "seats": 2,
-    "name": "Short Bar",
+    "name": "Mini Bar",
     "svg_path": "svgs/2_bar_rect.svg",
     "cost": 350,
     "daily_upkeep": 1,
     "noisiness": 2,
-    "privacy": 0.5
+    "privacy": 0.5,
+    "appliances": [
+      {
+        "name": "Mini Bar",
+        "attributes": {
+          "category": "cooking",
+          "capabilities": { "alcohol": 1 },
+          "cook_time_mean": 0.5,
+          "cook_time_std": 0.1,
+          "quality_mean": 0.5,
+          "quality_std": 0.1,
+          "difficulty_rating": 0.8,
+          "cost": 4000,
+          "daily_upkeep": 80,
+          "reliability": 0.9,
+          "noisiness": 0.01,
+          "atmosphere": 0.1,
+          "x": -1,
+          "y": -1,
+          "radius": 0
+        }
+      }
+    ]
   },
   "10": {
     "type": "image",
     "size": 70,
     "seats": 6,
-    "name": "Long Bar",
+    "name": "Full Bar",
     "svg_path": "svgs/6_bar_rect.svg",
     "cost": 1050,
     "daily_upkeep": 1,
     "noisiness": 2,
-    "privacy": 0.5
+    "privacy": 0.5,
+    "appliances": [
+      {
+        "name": "Full Bar",
+        "attributes": {
+          "category": "cooking",
+          "capabilities": { "alcohol": 1 },
+          "path": "svgs/robot.svg",
+          "cook_time_mean": 0.5,
+          "cook_time_std": 0.1,
+          "quality_mean": 0.5,
+          "quality_std": 0.1,
+          "difficulty_rating": 0.8,
+          "cost": 4000,
+          "daily_upkeep": 80,
+          "reliability": 0.9,
+          "noisiness": 0.01,
+          "atmosphere": 0.1,
+          "x": -1,
+          "y": -1,
+          "radius": 0
+        }
+      }
+    ]
   }
 }

@@ -1,5 +1,16 @@
 class Table {
-  constructor(type, name, seats, size, cost, upkeep, x, y, svg_path) {
+  constructor(
+    type,
+    name,
+    seats,
+    size,
+    cost,
+    upkeep,
+    x,
+    y,
+    svg_path,
+    appliances
+  ) {
     this.type = type;
     this.name = name;
     this.seats = seats;
@@ -9,12 +20,14 @@ class Table {
     this.x_original = x;
     this.y_original = y;
     this.path = svg_path ? svg_path : "svgs/" + seats + "_table_round.svg";
+    this.appliances = appliances;
     this.attributes = {
       type: this.type,
       seats: this.seats,
       radius: this.size,
       cost: this.cost,
-      daily_upkeep: this.daily_upkeep
+      daily_upkeep: this.daily_upkeep,
+      appliances: this.appliances
     };
   }
 
