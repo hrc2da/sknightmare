@@ -50,7 +50,7 @@ def handle_connect():
 def socket_simulate(restaurant):
     layout = json.loads(restaurant)
     rdq = RestaurantDayQueue()
-    r = Restaurant("Sophie's Kitchen", layout["equipment"], layout["tables"], layout["staff"], day_log=rdq)
+    r = Restaurant("Sophie's Kitchen", layout["equipment"], layout["tables"], layout["staff"], day_log=rdq, verbose=False)
     r.simulate(days=int(layout["days"]))
     emit("sim_report", r.ledger.generate_final_report())
 

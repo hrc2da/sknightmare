@@ -23,10 +23,16 @@ class Order:
     self.equipment_type = "oven"
     self.bill = 0
     self.qualities = []
+    self.drink_qualities = []
     self.cook_times = []
+    self.mix_times = []
     self.total_cost = 0
     self.meals = []
+    self.drinks = []
+    self.order_start_time = None
     self.total_cook_time = None
+    self.drink_order_times = []
+
 
   def place_order(self, kitchen, menu):
     self.env.ledger.print("{}: Placing order of size {} for {}".format(self.env.m_current_time().format("HH:mm:ss"),self.party.size,self.party.name))
@@ -42,20 +48,43 @@ class Order:
         appliance = yield kitchen.get(lambda appliance: all(req in appliance.capabilities for req in meal_order["requirements"]))
         self.status = "cooking"
         start_time = self.env.m_current_time()
-        yield self.env.process(appliance.cook(self,meal_order))
+        quality, raw_cook_time = yield self.env.process(appliance.cook(self,meal_order))
         #yield self.env.timeout(4)
         cook_time = self.env.m_current_time()-start_time
-        self.env.ledger.print("Order {}/{} of {} for {} cooked in time {:.2f} with quality {:.2f}.".format(diner+1, self.party.size, meal_order["name"], self.party.name, self.cook_time, self.quality))
-        self.qualities.append(self.quality)
+        self.cook_time = cook_time
+        self.env.ledger.print("Order {}/{} of {} for {} cooked in time {:.2f} with quality {:.2f}.".format(diner+1, self.party.size, meal_order["name"], self.party.name, raw_cook_time, quality))
+        self.qualities.append(quality)
         self.cook_times.append(cook_time)
         yield kitchen.put(appliance)
     order_end_time = self.env.m_current_time()
     self.total_cook_time = order_end_time - self.order_start_time
+
+  def place_drink_order(self, kitchen, menu):
+    self.env.ledger.print("{}: Placing order of size {} for {}".format(self.env.m_current_time().format("HH:mm:ss"),self.party.size,self.party.name))
+    order_start_time = self.env.m_current_time()
+    for diner in range(self.party.size):
+      drink_order = self.choose_menu_item(menu)
+      self.drinks.append(drink_order)
+      self.bill += drink_order["price"]
+      self.total_cost += drink_order["cost"]
+      appliance = yield kitchen.get(lambda appliance: all(req in appliance.capabilities for req in drink_order["requirements"]))
+      start_time = self.env.m_current_time()
+      quality, raw_mix_time = yield self.env.process(appliance.cook(self,drink_order))
+      mix_time = self.env.m_current_time()-start_time
+      self.mix_times.append(mix_time)
+      self.drink_qualities.append(quality)
+      yield kitchen.put(appliance)
+    order_end_time = self.env.m_current_time()
+    self.drink_order_times.append(order_end_time - order_start_time)
+
+
+
   def selection_noise(self):
     return np.random.normal(0,10)
 
   def choose_menu_item(self, menu):
       menu_stats = self.env.ledger.get_menu_stats()
+      print(menu_stats)
       budget = self.party.affluence * self.party.max_budget
       appeals = {}
       max_appeal = -1000000
@@ -68,12 +97,12 @@ class Order:
           volume = stats["volume"][0]
           cook_time = stats["cook_time"][0]
         except KeyError as e:
-          print(e)
+          print("Key error for:",e)
           quality = 0.5
           volume = 0
           cook_time = meal["cook_time"]
-        #weight this by user preference (e.g. cook_time*(1-patience))
-        appeal = quality*volume/(self.party.patience*cook_time+unaffordability) +self.selection_noise()
+        #weight this by user menu)
+        appeal = quality*volume/((1-self.party.patience)*cook_time+unaffordability) +self.selection_noise()
         appeals[meal["name"]] = appeal
         if best_meal is None:
           max_appeal = appeal
@@ -87,6 +116,9 @@ class Order:
       return best_meal
 
   def get_total_cook_time(self):
+    if self.order_start_time == None:
+      now = self.env.m_current_time()
+      return now - now
     if self.total_cook_time == None:
       return self.env.m_current_time() - self.order_start_time
     else:
@@ -98,6 +130,11 @@ class Order:
       completed_meals.append(MealStats(self.meals[i],self.cook_times[i],self.qualities[i]))
     return completed_meals
 
+  def get_completed_drinks(self):
+    completed_drinks = []
+    for i in range(len(self.drink_qualities)):
+      completed_drinks.append((MealStats(self.drinks[i],self.mix_times[i],self.drink_qualities[i])))
+    return completed_drinks
 
 class Appliance:
   def __init__(self,env, name, attributes):
@@ -112,10 +149,11 @@ class Appliance:
     difficulty_diff = item["difficulty"] - self.difficulty_rating
     if difficulty_diff > 0:
         difficulty_penalty -= difficulty_diff  
-    order.quality = np.clip(self.quality.rvs()*difficulty_penalty,0,1)
+    quality = np.clip(self.quality.rvs()*difficulty_penalty,0,1)
     # TODO: add dependency on item cook time
-    order.cook_time = int(max(0.5,self.cook_time.rvs())*item["cook_time"])
-    yield self.env.timeout(order.cook_time*60)
+    cook_time = int(max(0.5,self.cook_time.rvs())*item["cook_time"])
+    yield self.env.timeout(cook_time*60)
+    return quality, cook_time
   def parse_attributes(self,attributes):
     self.x = attributes["x"]
     self.y = attributes["y"]
@@ -294,8 +332,8 @@ class Party:
     self.env.ledger.print("Welcoming Party {} of size {}.".format(self.name,self.size))
     self.wait_start_time = self.env.m_current_time()
     self.status = PartyStatus.ENTERED
+    self.order = Order(self.env,self.env.m_rw(),self,self.table)
 
-    
   def parse_attributes(self, attributes):
     #  ["size","affluence","taste","noisinesself.table.party = selfss","patience","noise_tolerance","space_tolerance"]
     self.size = attributes["size"] # number self.table.party = selfe party
@@ -308,6 +346,9 @@ class Party:
     self.space_tolerance = attributes["space_tolerance"]
     self.mood = attributes["mood"]
     self.sensitivity = attributes["sensitivity"]
+    self.appetite = attributes["appetite"]
+    self.drink_frequency = attributes["drink_frequency"]
+    self.bill = 0
     self.paid_check = 0
     self.satisfaction = self.mood
     self.tolerance_weights = {}
@@ -323,6 +364,24 @@ class Party:
     self.noise_weight = (1-self.noise_tolerance)/total_weight
     self.space_weight = (1-self.space_tolerance)/total_weight
     self.sensitivity_weight = self.sensitivity/total_weight
+  
+  def start_ordering_drinks(self,kitchen,menu):
+     while self.status < PartyStatus.PAID:
+      if self.status >= PartyStatus.SEATED:
+        # order and pay for a drink
+        if np.random.uniform(0,1) < self.drink_frequency:
+          yield self.env.process(self.order.place_drink_order(kitchen,menu))
+        # drink it
+      yield self.env.timeout(30*60*self.drink_frequency)
+
+  def chill(self):
+    '''
+      once seated, spend some time before leaving (essentially this happens when there is no kitchen)
+    '''
+    self.status = PartyStatus.EATING
+    start_time = self.env.m_current_time()
+    yield self.env.timeout(30*60*self.size*self.leisureliness)
+    self.eating_time = self.env.m_current_time()-start_time
 
   def wait_for_table(self, seating):
     start_time = self.env.m_current_time()
@@ -354,7 +413,6 @@ class Party:
     if np.random.uniform(0,1) > 0.05:
       return False
   def place_order(self,kitchen,menu):
-    self.order = Order(self.env,self.env.m_rw(),self,self.table)
     self.status = PartyStatus.ORDERED
     self.env.ledger.print("Ordering")
     self.wait_start_time = self.env.m_current_time()
@@ -365,7 +423,7 @@ class Party:
     self.env.ledger.print("Party {} is eating".format(self.name))
     self.status = PartyStatus.EATING
     # self.satisfaction += np.mean(order.satisfactions) #should consider wait time here as well
-    self.bill = self.order.bill
+    # self.bill = self.order.bill
     yield self.env.timeout(30*60*self.size*self.leisureliness)
     self.eating_time = self.env.m_current_time()-start_time
   
@@ -376,7 +434,7 @@ class Party:
     if self.table:
       self.status = PartyStatus.PAID
       self.table.party = None
-      subtotal = self.bill
+      subtotal = self.order.bill
       tip = max(self.satisfaction,0)*0.3*subtotal
       self.paid_check = subtotal + tip
       yield seating.put(self.table)
@@ -386,28 +444,29 @@ class Party:
 
 
   def update_satisfaction(self, tables):
-    while self.status >= PartyStatus.SEATED and self.status < PartyStatus.PAID: # do this for as long as we're seated
-      service_draw = np.random.rand()
-      if service_draw <= self.table.service_rating:
-        service = 1
-      else:
-        service = 0
-      self.service.append(service)
-      self.perceived_noisiness = self.table.get_received_noise()
-      if self.status == PartyStatus.SEATED or self.status == PartyStatus.ORDERED:
-        total_weight = self.patience_weight + self.noise_weight + self.sensitivity
-        current_wait = self.env.m_current_time() - self.wait_start_time
-        self.satisfaction = (1-total_weight)*self.satisfaction + self.patience_weight*(1-current_wait.total_seconds()/self.max_wait_tolerance) + self.noise_weight*(1-self.perceived_noisiness/self.max_noise_level)
-        self.satisfaction += self.sensitivity_weight*service #split onto a second line just for readability
-      elif self.status == PartyStatus.EATING:
-        total_weight = self.noise_weight + self.taste_weight + self.sensitivity
-        if len(self.order.qualities) > 0:
-          food_quality = np.mean(self.order.qualities)
+    while self.status < PartyStatus.PAID: # do this for as long as we're seated
+      if self.status >= PartyStatus.SEATED:
+        service_draw = np.random.rand()
+        if service_draw <= self.table.service_rating:
+          service = 1
         else:
-          food_quality = 0
-        self.satisfaction = (1-total_weight)*self.satisfaction + self.noise_weight*(1-self.perceived_noisiness/self.max_noise_level) +self.taste_weight*(food_quality) + self.sensitivity_weight*service
-      else:
-        pass
+          service = 0
+        self.service.append(service)
+        self.perceived_noisiness = self.table.get_received_noise()
+        if self.status == PartyStatus.SEATED or self.status == PartyStatus.ORDERED:
+          total_weight = self.patience_weight + self.noise_weight + self.sensitivity
+          current_wait = self.env.m_current_time() - self.wait_start_time
+          self.satisfaction = (1-total_weight)*self.satisfaction + self.patience_weight*(1-current_wait.total_seconds()/self.max_wait_tolerance) + self.noise_weight*(1-self.perceived_noisiness/self.max_noise_level)
+          self.satisfaction += self.sensitivity_weight*service #split onto a second line just for readability
+        elif self.status == PartyStatus.EATING:
+          total_weight = self.noise_weight + self.taste_weight + self.sensitivity
+          if len(self.order.qualities) > 0:
+            food_quality = np.mean(self.order.qualities)
+          else:
+            food_quality = 0
+          self.satisfaction = (1-total_weight)*self.satisfaction + self.noise_weight*(1-self.perceived_noisiness/self.max_noise_level) +self.taste_weight*(food_quality) + self.sensitivity_weight*service
+        else:
+          pass
         # total_weight = self.noise_weight
         # self.satisfaction = self.mood - (1-self.noise_tolerance)*self.perceived_noisiness
       yield self.env.timeout(self.env.sim_loop_delay) # 5 minute loop
