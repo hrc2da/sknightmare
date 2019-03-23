@@ -6,6 +6,7 @@ from gp import run_gp_flask
 from queue import Queue
 import time
 import json
+
 app = Flask(__name__)
 CORS(app)
 socketio = SocketIO(app)

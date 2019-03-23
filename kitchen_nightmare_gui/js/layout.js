@@ -74,7 +74,8 @@ function setupRestaurant(w, h) {
         table_data["cost"],
         table_data["daily_upkeep"],
         x,
-        y
+        y,
+        table_data["svg_path"]
       );
       let svg_attrs = table.draw();
 

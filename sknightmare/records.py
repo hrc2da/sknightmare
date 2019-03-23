@@ -28,6 +28,8 @@ class RestaurantDay:
             self.get_equipment_cost(self.env.ledger.appliances) + self.env.rent + \
             len(self.env.ledger.staff)*self.env.worker_wage
 
+
+
     def get_parties(self, table):
         return [p for p in self.parties if p.status >= PartyStatus.SEATED and p.table.name == table.name]
 

@@ -31,6 +31,7 @@ class Order:
   def place_order(self, kitchen, menu):
     self.env.ledger.print("{}: Placing order of size {} for {}".format(self.env.m_current_time().format("HH:mm:ss"),self.party.size,self.party.name))
     self.order_start_time = self.env.m_current_time()
+    # TODO: Refactor to loop over order selection and then loop again to cook orders
     for diner in range(self.party.size):
         # choose a menu item
         meal_order = self.choose_menu_item(menu)
@@ -54,10 +55,36 @@ class Order:
     return np.random.normal(0,10)
 
   def choose_menu_item(self, menu):
+      menu_stats = self.env.ledger.get_menu_stats()
       budget = self.party.affluence * self.party.max_budget
+      appeals = {}
+      max_appeal = -1000000
+      best_meal = None
+      for meal in menu:
+        unaffordability = np.abs(budget-meal["price"])
+        try:
+          stats = menu_stats[meal["name"]]
+          quality = stats["quality"][0]
+          volume = stats["volume"][0]
+          cook_time = stats["cook_time"][0]
+        except KeyError as e:
+          print(e)
+          quality = 0.5
+          volume = 0
+          cook_time = meal["cook_time"]
+        #weight this by user preference (e.g. cook_time*(1-patience))
+        appeal = quality*volume/(self.party.patience*cook_time+unaffordability) +self.selection_noise()
+        appeals[meal["name"]] = appeal
+        if best_meal is None:
+          max_appeal = appeal
+          best_meal = meal
+        elif appeal > max_appeal:
+          max_appeal = appeal
+          best_meal = meal
       #monetary_taste = self.party.taste * self.party.max_budget
-      price_point = budget #(budget + monetary_taste)/2 + self.selection_noise()
-      return menu[np.argmin([np.abs(price_point-meal["price"]) for meal in menu])]
+      #price_point = budget #(budget + monetary_taste)/2 + self.selection_noise()
+      #return menu[np.argmin([np.abs(price_point-meal["price"]) for meal in menu])]
+      return best_meal
 
   def get_total_cook_time(self):
     if self.total_cook_time == None:
@@ -80,22 +107,40 @@ class Appliance:
   def cook(self,order,item):
     self.env.ledger.print("{} is cooking an order of {} for {}".format(self.name,item["name"],order.party.name))
     order.status = "cooking NOW"
+    # TODO: does the difficulty penalty make sense?
     difficulty_penalty = 1
     difficulty_diff = item["difficulty"] - self.difficulty_rating
     if difficulty_diff > 0:
         difficulty_penalty -= difficulty_diff  
     order.quality = np.clip(self.quality.rvs()*difficulty_penalty,0,1)
-    order.cook_time = self.cook_time.rvs()
+    # TODO: add dependency on item cook time
+    order.cook_time = int(max(0.5,self.cook_time.rvs())*item["cook_time"])
     yield self.env.timeout(order.cook_time*60)
   def parse_attributes(self,attributes):
+    self.x = attributes["x"]
+    self.y = attributes["y"]
     self.capabilities = attributes["capabilities"]
     self.cook_time = norm(attributes["cook_time_mean"],attributes["cook_time_std"])
     self.quality = norm(attributes["quality_mean"],attributes["quality_std"])
     self.difficulty_rating = attributes["difficulty_rating"]
     self.daily_upkeep = attributes["daily_upkeep"]
     self.cost = attributes["cost"]
+    self.noisiness = attributes["noisiness"]
+    self.atmosphere = attributes["atmosphere"]
+  def get_generated_noise(self):
+    raw_noise = self.env.max_noise_db*self.noisiness
+    if "noise_dampening" in self.capabilities:
+      raw_noise -= self.capabilities["noise_dampening"]*self.env.max_noise_db
+    return raw_noise
 
+# class Bar(Table):
+#   '''
+#     A special kind of table
+#   '''
 
+#   def __init__(self, env, name, attributes):
+#     super().__init__(self,env,name,attributes)
+    
 class Table:
   '''
     Tables are resources that can be filled by parties
@@ -176,9 +221,14 @@ class Table:
     current_noise = 0
     for t in self.env.ledger.tables:
       if t != self:
-        dist = self.distances[t.name]
+        dist = self.table_distances[t.name]
         assert dist != 0
         current_noise += t.get_generated_noise()/dist
+    if self.env.ledger.appliances:
+      for a in self.env.ledger.appliances:
+        dist = self.appliance_distances[a.name]
+        assert dist != 0
+        current_noise += a.get_generated_noise()/dist
     self.received_noise.append(current_noise)
 
   def update_crowding(self):
@@ -190,23 +240,29 @@ class Table:
           occupancy = 0
         else:
           occupancy = t.party.size
-        dist = self.distances[t.name]
+        dist = self.table_distances[t.name]
         assert dist != 0
         crowding += occupancy/dist
     self.perceived_crowding.append(crowding)
 
   def calculate_distances(self):
-    self.distances = {}
+    self.table_distances = {}
+    self.appliance_distances = {}
     for t in self.env.ledger.tables:
       try:
-        assert t.name not in self.distances
+        assert t.name not in self.table_distances
       except AssertionError as e:
         print("Table names must be unique!")
         raise(e)
       if t != self:
-        sqrdist = np.linalg.norm(((t.x - self.x), (t.y-self.y)),2)
+        sqrdist = np.linalg.norm(((t.x - self.x), (t.y - self.y)),2)
         assert sqrdist > 0
-        self.distances[t.name] = sqrdist
+        self.table_distances[t.name] = sqrdist
+    for a in self.env.ledger.appliances:
+      sqrdist = np.linalg.norm(((a.x - self.x), (a.y - self.y)),2)
+      assert sqrdist > 0
+      self.appliance_distances[a.name] = sqrdist
+
 
 class Staff:
   '''
@@ -295,7 +351,8 @@ class Party:
       else:
         self.env.ledger.print("Party {} with patience rating {} is tired of waiting for a table after waiting for {}.".format(self.name,self.patience,self.seating_wait))
         return False
-
+    if np.random.uniform(0,1) > 0.05:
+      return False
   def place_order(self,kitchen,menu):
     self.order = Order(self.env,self.env.m_rw(),self,self.table)
     self.status = PartyStatus.ORDERED

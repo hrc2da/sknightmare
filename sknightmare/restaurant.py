@@ -19,25 +19,36 @@ class Restaurant:
   waiting_list_max = 20
   menu_items = [
     {
-        "name": "Simple Pizza",
-        "price": 5.0,
+        "name": "Pizza Slice",
+        "price": 2.0,
         "requirements": ["pizza"],
+        "cook_time": 5, #in minutes
         "difficulty": 0.1,
-        "cost": 4.0
+        "cost": 1.0
     },
     {
-        "name": "Intermediate Pizza",
+        "name": "Personal Pan Pizza",
         "price": 10.0,
         "requirements": ["pizza"],
         "difficulty": 0.5,
+        "cook_time": 10,
         "cost": 7.0
     },
     {
-        "name": "Excessive Pizza",
+        "name": "Wood-Fired Pizza",
         "price": 60.0,
-        "requirements": ["pizza"],
+        "requirements": ["pizza", "brick_oven"],
+        "cook_time":15,
         "difficulty": 0.9,
         "cost": 30
+    },
+    {
+        "name": "Sushi",
+        "price": 15.0,
+        "requirements": ["sushi"],
+        "cook_time":15,
+        "difficulty": 0.9,
+        "cost": 8
     }
   ]
   def __init__(self, name, equipment, tables, staff, start_time='2019-01-01T00:00:00', day_log = None):
@@ -111,8 +122,8 @@ class Restaurant:
     self.max_party_size = 10
     self.neighborhood_size = 10000
     self.max_eating_pop = 0.1*self.neighborhood_size
-    self.demographics = ["size","affluence","taste","noisiness","leisureliness","patience","noise_tolerance","space_tolerance", "mood","sensitivity"] #sensitivity has to do with how much you care about service
-    self.demographic_means = np.array([0.25,0.3,0.5,0.6,0.6,0.5,0.3,0.5, 0.5, 0.6])
+    self.demographics = ["size","affluence","taste","noisiness","leisureliness","patience","noise_tolerance","space_tolerance", "mood","sensitivity", "appetite", "drink_frequency"] #sensitivity has to do with how much you care about service
+    self.demographic_means = np.array([0.25,0.3,0.5,0.6,0.6,0.5,0.3,0.5, 0.5, 0.6,0.5, 0.5])
                                         # size aff taste  noi   leis  pat noi_t space_t
     # self.demographic_cov = np.matrix([[ 0.02, 0.00, 0.00, 0.09, 0.02,-0.02, 0.06,-0.02], #size
     #                                   [ 0.00, 0.02, 0.10,-0.02, 0.06,-0.07,-0.07,-0.07], #affluence
@@ -123,18 +134,20 @@ class Restaurant:
     #                             self.start_time.replace(seconds=self.env.now)      [ 0.06,-0.07,-0.01, 0.08,-0.06, 0.07, 0.02, 0.09], #noise tolerance
     #                             self.start_time.replace(seconds=self.env.now)      [-0.02,-0.07, 0.00, 0.03,-0.06, 0.06, 0.09, 0.02] #space toleranceseating.put(self.table)
     #                                  ])  
-    self.demographic_cov = np.matrix([[ 0.05,  0.0,   0.0,   0.018, 0.004,-0.004, 0.012,-0.004, 0.00, -0.001],
-                                      [ 0.0,   0.05,  0.03, -0.004, 0.012,-0.014,-0.014,-0.014, 0.00, 0.02],
-                                      [ 0.0,   0.03,  0.05, -0.004, 0.014,-0.002,-0.002, 0.0, 0.00,  0.01],
-                                      [ 0.018,-0.004,-0.004, 0.05,  0.002, 0.0,   0.016, 0.006, 0.00, 0.00],
-                                      [ 0.004, 0.012, 0.014, 0.002, 0.05,  0.014,-0.012,-0.012, 0.00, 0.01],
-                                      [-0.004,-0.014,-0.002, 0.0,   0.014, 0.05,  0.014, 0.012, 0.00, -0.02],
-                                      [ 0.012,-0.014,-0.002, 0.016,-0.012, 0.014, 0.05,  0.018, 0.00, -0.015],
-                                      [-0.004,-0.014, 0.0,   0.006,-0.012, 0.012, 0.018, 0.05, 0.00, -0.01],
-                                      [0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.05, -0.01],
-                                      [-0.001, 0.02, 0.01, 0.000, 0.01, -0.02, -0.015, -0.01, -0.01, 0.05]
+    self.demographic_cov = np.matrix([[ 0.05,  0.0,   0.0,   0.018, 0.004,-0.004, 0.012,-0.004, 0.00, -0.001, 0.000, 0.000],
+                                      [ 0.0,   0.05,  0.03, -0.004, 0.012,-0.014,-0.014,-0.014, 0.00, 0.02, 0.000, 0.000],
+                                      [ 0.0,   0.03,  0.05, -0.004, 0.014,-0.002,-0.002, 0.0, 0.00,  0.01, 0.000, 0.000],
+                                      [ 0.018,-0.004,-0.004, 0.05,  0.002, 0.0,   0.016, 0.006, 0.00, 0.00, 0.000, 0.01],
+                                      [ 0.004, 0.012, 0.014, 0.002, 0.05,  0.014,-0.012,-0.012, 0.00, 0.01, 0.000, 0.000],
+                                      [-0.004,-0.014,-0.002, 0.0,   0.014, 0.05,  0.014, 0.012, 0.00, -0.02, 0.000, 0.000],
+                                      [ 0.012,-0.014,-0.002, 0.016,-0.012, 0.014, 0.05,  0.018, 0.00, -0.015, 0.000, 0.000],
+                                      [-0.004,-0.014, 0.0,   0.006,-0.012, 0.012, 0.018, 0.05, 0.00, -0.010, 0.000, 0.000],
+                                      [0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.05, -0.01, 0.000, 0.000],
+                                      [-0.001, 0.02, 0.01, 0.000, 0.01, -0.02, -0.015, -0.01, -0.01, 0.05, 0.000, 0.000],
+                                      [0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.05, 0.000],
+                                      [0.000, 0.000, 0.000, 0.01, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.05]
                                       ])
-
+    # TODO: write an assertion that this is positive semi-definite
 
   def current_time(self):
     # let's assume the time step is seconds
@@ -213,10 +226,14 @@ class Restaurant:
   def decide_entry(self,party_attributes):
     if(party_attributes["size"] > self.max_table_size):
       return False
+    # if the people are unhappy and the restaurant is bad, don't enter
     if party_attributes["mood"] < 1-self.env.ledger.satisfaction:
-      return False
+      if np.random.uniform(0,1) > self.env.ledger.satisfaction/5: #basically if the satisfaction is high, with some small prob they enter anyway 
+        return False
+    # if the service is bad and the people care about service, don't enter
     if party_attributes["sensitivity"] > self.env.ledger.service_rating:
-      return False
+      if np.random.uniform(0,1) > self.env.ledger.service_rating: #if the service is good, still enter with some probability
+        return False
     if party_attributes["affluence"] < 0.3:
       if party_attributes["taste"] > self.env.ledger.yelp_rating:
         return False
@@ -227,6 +244,7 @@ class Restaurant:
       if party_attributes["taste"] > self.env.ledger.michelin_rating:
         return False
     if np.random.uniform(0,1) > 0.05:
+      # TODO: replace this with tuning the poisson entry rate
       return False
     else:
        return True
