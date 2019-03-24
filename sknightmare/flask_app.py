@@ -16,8 +16,9 @@ class RestaurantDayQueue(Queue):
     def put(self, report, block=True, timeout=None):
 
         emit('day_report', report.get_report())
-        print(report.get_report())
+        #print(report.get_report())
         super().put(report, block, timeout)
+        socketio.sleep(0)
 
 
 # @app.route('/simulate', methods=['POST'])
