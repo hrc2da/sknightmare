@@ -5,7 +5,7 @@ from enum import IntEnum
 from copy import copy
 
 # Some enum and tuple definitions:
-PartyStatus = IntEnum("PartyStatus", "ENTERED SEATED ORDERED EATING PAID")
+PartyStatus = IntEnum("PartyStatus", "ENTERED SEATED ORDERED EATING PAID LEFT")
 TableStats = namedtuple('TableStats', 'occupancy generated_noise received_noise perceived_crowding')
 PartyStats = namedtuple('PartyState', 'satisfaction order perceived_noise wait_time cook_time eat_time')
 MealStats = namedtuple('MealStats', 'order cook_time quality')
@@ -33,7 +33,8 @@ class RestaurantDay:
             len(self.env.ledger.staff)*self.env.worker_wage
 
 
-
+    def get_unpaid(self):
+        return [p for p in self.parties if p.status != PartyStatus.PAID]
     def get_parties(self, table):
         return [p for p in self.parties if p.status >= PartyStatus.SEATED and p.table.name == table.name]
 
@@ -54,10 +55,10 @@ class RestaurantDay:
 
     def get_rating(self, level, stats):
         if level == "yelp":
-            tiered_items = {k: v for k, v in stats.items() if self.food_menu_dict[k]['price'] < 0.1*self.env.max_budget}
+            tiered_items = {k: v for k, v in stats.items() if self.food_menu_dict[k]['price'] < 0.2*self.env.max_budget}
         elif level == "zagat":
             tiered_items = {k: v for k, v in stats.items(
-            ) if self.food_menu_dict[k]['price'] >= 0.1*self.env.max_budget and self.food_menu_dict[k]['price'] <= 0.5*self.env.max_budget}
+            ) if self.food_menu_dict[k]['price'] >= 0.2*self.env.max_budget and self.food_menu_dict[k]['price'] <= 0.5*self.env.max_budget}
         else:
             tiered_items = {k: v for k, v in stats.items() if self.food_menu_dict[k]['price'] > 0.5*self.env.max_budget}
 
@@ -266,7 +267,7 @@ class RestaurantDay:
             return np.mean([p.size for p in self.parties])
 
     def get_paid_size(self):
-        paid = [p.size for p in self.parties if p.status >= PartyStatus.PAID]
+        paid = [p.size for p in self.parties if p.status == PartyStatus.PAID]
         if len(paid) < 1:
             return 0
         else:
@@ -279,7 +280,7 @@ class RestaurantDay:
             return np.sum([p.size for p in self.parties])
 
     def get_total_individual_paying_customers(self):
-        paid = [p.size for p in self.parties if p.status >= PartyStatus.PAID]
+        paid = [p.size for p in self.parties if p.status == PartyStatus.PAID]
         if len(paid) < 1:
             return 0
         else:
@@ -289,12 +290,12 @@ class RestaurantDay:
       return len(self.parties)
 
     def get_report(self):
-
+        #print(len(self.get_unpaid()))
         return {
             'entries': len(self.parties),
             'seated': len([p for p in self.parties if p.status >= PartyStatus.SEATED]),
             'served': len([p for p in self.parties if p.status >= PartyStatus.EATING]),
-            'paid': len([p for p in self.parties if p.status >= PartyStatus.PAID]),
+            'paid': len([p for p in self.parties if p.status == PartyStatus.PAID]),
             'entry_party_size':  self.get_entry_size(),
             'paid_party_size':  self.get_paid_size(),
             'wait_time': self.get_avg_wait_time(),
@@ -360,17 +361,24 @@ class Ledger:
     def update_ratings(self, d):
         if d.yelp_count > 0:
             new_yc = self.yelp_count + d.yelp_count
-            self.yelp_rating = (self.yelp_rating*self.yelp_count + d.yelp_rating*d.yelp_count)/new_yc
-            self.yelp_count = new_yc
+        else:
+            new_yc = self.yelp_count + 1 #enforce decay for no volume
+        self.yelp_rating = (self.yelp_rating*self.yelp_count + d.yelp_rating*d.yelp_count)/new_yc
+        self.yelp_count = new_yc
+
         if d.zagat_count > 0:
             new_zc = self.zagat_count + d.zagat_count
-            self.zagat_rating = (self.zagat_rating*self.zagat_count + d.zagat_rating*d.zagat_count)/new_zc
-            self.zagat_count = new_zc
+        else:
+            new_zc = self.zagat_count + 1
+        self.zagat_rating = (self.zagat_rating*self.zagat_count + d.zagat_rating*d.zagat_count)/new_zc
+        self.zagat_count = new_zc
         if d.michelin_count > 0:
             new_mc = self.michelin_count + d.michelin_count
-            self.michelin_rating = (self.michelin_rating*self.michelin_count +
-                                    d.michelin_rating*d.michelin_count)/new_mc
-            self.michelin_count = new_mc
+        else:
+            new_mc = self.michelin_count + 1
+        self.michelin_rating = (self.michelin_rating*self.michelin_count +
+                                d.michelin_rating*d.michelin_count)/new_mc
+        self.michelin_count = new_mc
         if len(d.parties) > 0:
             new_sc = self.satisfaction_count + len(d.parties)
             self.satisfaction = (self.satisfaction*self.satisfaction_count + d.satisfaction*len(d.parties))/new_sc
