@@ -61,7 +61,8 @@ class DiningRoom {
                     class: "table_bounds",
                     r: 3 * added_table.size * (i / taper),
                     fill: "red",
-                    opacity: 0.1
+                    opacity: 0.1,
+                    "pointer-events": "none"
                 })
                 .moveToBack();
         }
@@ -185,7 +186,8 @@ class DiningRoom {
                     class: "waiter_bounds",
                     r: added_waiter.range * (i / taper),
                     fill: "steelblue",
-                    opacity: 0.1
+                    opacity: 0.1,
+                    "pointer-events": "none"
                 })
                 .moveToBack();
         }
