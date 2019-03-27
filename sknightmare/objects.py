@@ -45,7 +45,7 @@ class Order:
         self.bill += meal_order["price"]
         self.total_cost += meal_order["cost"]
         # submit the order
-        appliance = yield kitchen.get(lambda appliance: all(req in appliance.capabilities for req in meal_order["requirements"]))
+        appliance = yield kitchen.get(lambda appliance: any(req in appliance.capabilities for req in meal_order["requirements"]))
         self.status = "cooking"
         start_time = self.env.m_current_time()
         quality, raw_cook_time = yield self.env.process(appliance.cook(self,meal_order))
@@ -84,7 +84,7 @@ class Order:
 
   def choose_menu_item(self, menu):
       menu_stats = self.env.ledger.get_menu_stats()
-      print(menu_stats)
+      # print(menu_stats)
       budget = self.party.affluence * self.party.max_budget
       appeals = {}
       max_appeal = -1000000
@@ -149,10 +149,16 @@ class Appliance:
     difficulty_diff = item["difficulty"] - self.difficulty_rating
     if difficulty_diff > 0:
         difficulty_penalty -= difficulty_diff  
-    qmean = self.capabilities[item["type"]]["quality_mean"]
-    qstd = self.capabilities[item["type"]]["quality_std"]
-    ctmean = self.capabilities[item["type"]]["cook_time_mult"]*item["cook_time"]
-    ctstd = self.capabilities[item["type"]]["cook_time_std"]
+    
+    best_capability = None
+    for req in item["requirements"]:
+      if req in self.capabilities:
+        best_capability = self.capabilities[req]
+        break
+    qmean = best_capability["quality_mean"]
+    qstd = best_capability["quality_std"]
+    ctmean = best_capability["cook_time_mult"]*item["cook_time"]
+    ctstd = best_capability["cook_time_std"]
     quality = np.clip(np.random.normal(loc=qmean, scale=qstd)*difficulty_penalty,0,1)
     cook_time = int(max(0.5,np.random.normal(loc=ctmean, scale=ctstd)))
     yield self.env.timeout(cook_time*60)
@@ -210,6 +216,7 @@ class Table:
     self.seats = attributes["seats"]
     self.daily_upkeep = attributes["daily_upkeep"]
     self.cost = attributes["cost"]
+    self.noisiness = attributes["noisiness"]
     
   def get_service_rating(self):
     '''
@@ -222,7 +229,7 @@ class Table:
       distance = np.linalg.norm((self.x - w.x, self.y-w.y),2)
       raw_rating += (1-distance/max_dist)/len(self.env.ledger.tables) #self.env.ledger.capacity# 
     self.service_rating = np.clip(raw_rating,0,1)
-    print("SERVICE_RATING:",self.service_rating)
+    # print("SERVICE_RATING:",self.service_rating)
 
 
   def get_generated_noise(self, index = None):
@@ -252,7 +259,7 @@ class Table:
 
   def update_generated_noise(self):
     if self.party is not None:
-      self.generated_noise.append(self.max_noise_db*self.party.noisiness*self.party.size)
+      self.generated_noise.append(self.max_noise_db*self.party.noisiness*self.party.size*self.noisiness)
     else:
       self.generated_noise.append(0)
 
@@ -262,12 +269,12 @@ class Table:
       if t != self:
         dist = self.table_distances[t.name]
         assert dist != 0
-        current_noise += min(t.get_generated_noise()/dist,self.env.max_noise_db) # capping received noise at max level to prevent exploding noise on overlaps
+        current_noise += min(t.get_generated_noise()/(dist**2),self.env.max_noise_db) # capping received noise at max level to prevent exploding noise on overlaps
     if self.env.ledger.appliances:
       for a in self.env.ledger.appliances:
         dist = self.appliance_distances[a.name]
         assert dist != 0
-        current_noise += min(a.get_generated_noise()/dist,self.env.max_noise_db)
+        current_noise += min(a.get_generated_noise()/(dist**2),self.env.max_noise_db)
     self.received_noise.append(max(0,current_noise))
 
   def update_crowding(self):
@@ -373,7 +380,7 @@ class Party:
         if np.random.uniform(0,1) < self.drink_frequency:
           yield self.env.process(self.order.place_drink_order(kitchen,menu))
         # drink it
-      yield self.env.timeout(30*60*self.drink_frequency)
+      yield self.env.timeout(30*60)
 
   def chill(self):
     '''
@@ -432,6 +439,7 @@ class Party:
     self.paid_check = 0
     self.satisfaction = max(0,self.satisfaction)
     self.env.ledger.print("Party {} has left".format(self.name))
+    self.status = PartyStatus.LEFT
     if self.table:
       self.status = PartyStatus.PAID
       self.table.party = None

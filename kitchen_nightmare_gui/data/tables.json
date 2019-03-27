@@ -57,7 +57,7 @@
     "svg_path": "svgs/2_bar_rect.svg",
     "cost": 350,
     "daily_upkeep": 1,
-    "noisiness": 2,
+    "noisiness": 10,
     "privacy": 0.5,
     "appliances": [
       {
@@ -86,7 +86,7 @@
     "svg_path": "svgs/6_bar_rect.svg",
     "cost": 1050,
     "daily_upkeep": 1,
-    "noisiness": 2,
+    "noisiness": 4,
     "privacy": 0.5,
     "appliances": [
       {

@@ -24,9 +24,9 @@ class RestaurantDay:
         self.food_menu_stats = self.get_food_stats()
         self.drink_menu_stats = self.get_drink_stats()
         self.menu_stats = self.get_menu_stats()
-        self.yelp_rating, self.yelp_count = self.get_rating("yelp", self.food_menu_stats)
-        self.zagat_rating, self.zagat_count = self.get_rating("zagat", self.food_menu_stats)
-        self.michelin_rating, self.michelin_count = self.get_rating("michelin", self.food_menu_stats)
+        self.yelp_rating, self.yelp_count = self.get_rating("yelp", self.menu_stats)
+        self.zagat_rating, self.zagat_count = self.get_rating("zagat", self.menu_stats)
+        self.michelin_rating, self.michelin_count = self.get_rating("michelin", self.menu_stats)
         self.satisfaction = self.get_avg_satisfaction()[0]
         self.expenses = self.get_food_cost() + self.get_seating_cost(tables) + \
             self.get_equipment_cost(self.env.ledger.appliances) + self.env.rent + \

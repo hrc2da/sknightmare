@@ -80,17 +80,17 @@ class Item {
       },
       fill: "black"
     };
-    attrs["text_drag_attrs"] = {
-      x: function(d) {
-        d.x = d3.mouse(this)[0] - d.text_pad;
-        return d.x;
-      },
+    // attrs["text_drag_attrs"] = {
+    //   x: function(d) {
+    //     d.x = d3.mouse(this)[0] - d.text_pad;
+    //     return d.x;
+    //   },
 
-      y: function(d) {
-        d.y = d3.mouse(this)[1] + d.text_pad;
-        return d.y;
-      }
-    };
+    //   y: function(d) {
+    //     d.y = d3.mouse(this)[1] + d.text_pad;
+    //     return d.y;
+    //   }
+    // };
     return attrs;
   };
 }

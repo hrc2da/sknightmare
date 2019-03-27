@@ -9,6 +9,7 @@ class Table {
     x,
     y,
     svg_path,
+    noisiness,
     appliances
   ) {
     this.type = type;
@@ -21,14 +22,18 @@ class Table {
     this.y_original = y;
     this.path = svg_path ? svg_path : "svgs/" + seats + "_table_round.svg";
     this.appliances = appliances;
+    this.noisiness = noisiness;
     this.attributes = {
       type: this.type,
       seats: this.seats,
       radius: this.size,
       cost: this.cost,
       daily_upkeep: this.daily_upkeep,
-      appliances: this.appliances
+      appliances: this.appliances,
+      noisiness: this.noisiness
     };
+    console.log(noisiness); 
+    console.log(this.noisiness);
   }
 
   draw = () => {
@@ -89,8 +94,19 @@ class Table {
           return d.y;
         }
       };
+      
       attrs["shape_attrs"] = shape_attrs;
     }
+    attrs['bounds_drag_attrs'] = {
+      cx: function (d) {
+          d.x = d3.mouse(this)[0]
+          return d.x;
+      },
+      cy: function (d) {
+          d.y = d3.mouse(this)[1]
+          return d.y;
+      },
+  }
     attrs["text"] = this.seats;
     attrs["text_attrs"] = {
       x: function(d) {

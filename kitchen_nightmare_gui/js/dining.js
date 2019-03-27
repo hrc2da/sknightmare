@@ -1,3 +1,13 @@
+d3.selection.prototype.moveToBack = function() {  
+  return this.each(function() { 
+      var firstChild = this.parentNode.firstChild; 
+      if (firstChild) { 
+          this.parentNode.insertBefore(this, firstChild); 
+      } 
+  });
+};
+
+
 class DiningRoom {
   constructor(w, h, padding) {
     this.tables = [];
@@ -19,17 +29,43 @@ class DiningRoom {
     let table_data = table["table_svg_attrs"]["data"][0];
     table_data.name = "Table " + dining_room.table_id_counter;
     table["data"] = table_data;
-
+    console.log("Table",table_data["noisiness"],table_data);
     let added_table = new Table(
       table["table_svg_attrs"]["svg_type"],
       "Table " + dining_room.table_id_counter,
-      table_data["num_seats"],
+      table_data["attributes"]["seats"],
       table_data["size"],
-      table_data["cost"],
-      table_data["daily_upkeep"],
+      table_data["attributes"]["cost"],
+      table_data["attributes"]["daily_upkeep"],
       table_data["x"],
-      table_data["y"]
+      table_data["y"],
+      table_data["svg_path"],
+      table_data["attributes"]["noisiness"],
+      table_data["attributes"]["appliances"]
     );
+
+    let taper = 10;
+    for (let i = 1; i <= taper; i++) {
+      table_g
+        .selectAll(".table_bounds_" + i)
+        .data([table_data])
+        .enter()
+        .append("circle")
+        .attrs({
+          cx: d => {
+            return d.x;
+          },
+          cy: d => {
+            return d.y;
+          },
+          class: "table_bounds",
+          r: 3*added_table.size * (i / taper),
+          fill: "red",
+          opacity: 0.1
+        })
+        .moveToBack();
+    }
+
     let table_svg_attrs = added_table.draw();
     table_data = table_svg_attrs["data"][0];
     // add drag handling to the table object
@@ -42,6 +78,10 @@ class DiningRoom {
         d3.select(this)
           .select("text")
           .attrs(table_svg_attrs["text_drag_attrs"]);
+        d3.select(this)
+        .selectAll("circle")
+        .moveToBack()
+        .attrs(table_svg_attrs["bounds_drag_attrs"]);
       })
       .on("end", function(d) {
         let mouseX = d3.mouse(this)[0];
@@ -91,9 +131,9 @@ class DiningRoom {
         d3.select(this)
           .select(item_svg_attrs["svg_type"])
           .attrs(item_svg_attrs["shape_drag_attrs"]);
-        d3.select(this)
-          .select("text")
-          .attrs(item_svg_attrs["text_drag_attrs"]);
+        // d3.select(this)
+        //   .select("text")
+        //   .attrs(item_svg_attrs["text_drag_attrs"]);
       })
       .on("end", function(d) {
         let mouseX = d3.mouse(this)[0];
@@ -146,7 +186,8 @@ class DiningRoom {
           r: added_waiter.range * (i / taper),
           fill: "steelblue",
           opacity: 0.1
-        });
+        })
+        .moveToBack();
     }
 
     let waiter_svg_attrs = added_waiter.draw();
@@ -161,6 +202,7 @@ class DiningRoom {
           .attrs(waiter_svg_attrs["shape_drag_attrs"]);
         d3.select(this)
           .selectAll("circle")
+          .moveToBack()
           .attrs(waiter_svg_attrs["bounds_drag_attrs"]);
       })
       .on("end", function(d) {
@@ -206,7 +248,17 @@ class DiningRoom {
     this.items = [];
     this.waiters = [];
   };
-
+/*
+    type,
+    name,
+    seats,
+    size,
+    cost,
+    upkeep,
+    x,
+    y,
+    svg_path,
+*/
   load_json_layout = json_string => {
     this.clear_layout();
     let dining_repr = JSON.parse(json_string);
@@ -221,10 +273,13 @@ class DiningRoom {
         table["name"],
         table["attributes"]["seats"],
         table["attributes"]["radius"],
-        0,
-        0,
+        table["attributes"]["cost"],
+        table["attributes"]["daily_upkeep"],
         table["attributes"]["x"] * this.width,
-        table["attributes"]["y"] * this.height
+        table["attributes"]["y"] * this.height,
+        table["attributes"]["svg_path"],
+        table["attributes"]["noisiness"],
+        table["attributes"]["appliances"]
       );
       let svg_attrs = table_obj.draw();
 
@@ -359,6 +414,7 @@ class DiningRoom {
       table_repr["attributes"] = table["data"].attributes;
       table_repr["attributes"]["x"] = table_repr["x"];
       table_repr["attributes"]["y"] = table_repr["y"];
+      table_repr["attributes"]["noisiness"] = table["data"]["attributes"].noisiness;
       table_layout.push(table_repr);
 
       if (table["data"].attributes.appliances.length > 0) {

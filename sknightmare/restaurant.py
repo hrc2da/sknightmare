@@ -41,7 +41,7 @@ class Restaurant:
     {
         "name": "Pizza Slice",
         "price": 2.0,
-        "requirements": ["pizza"],
+        "requirements": ["pizza","oven","microwave"],
         "type": "pizza",
         "cook_time": 5, #in minutes
         "difficulty": 0.1,
@@ -50,7 +50,7 @@ class Restaurant:
     {
         "name": "Personal Pan Pizza",
         "price": 10.0,
-        "requirements": ["pizza"],
+        "requirements": ["pizza","oven","microwave"],
         "type": "pizza",
         "difficulty": 0.5,
         "cook_time": 10,
@@ -59,7 +59,7 @@ class Restaurant:
     {
         "name": "Wood-Fired Pizza",
         "price": 60.0,
-        "requirements": ["pizza", "brick_oven"],
+        "requirements": ["brick_oven","pizza","oven"],
         "type": "pizza",
         "cook_time":15,
         "difficulty": 0.9,
@@ -98,6 +98,7 @@ class Restaurant:
     self.setup_neighborhood()
     self.setup_staffing(staff)
     self.setup_kitchen(equipment)
+    self.setup_menu() #notice that here we are refactoring the menu to weed out lesser options in requirements (if we have a brick oven, wood-fired pizza should wait for it)
     self.setup_seating(tables)
     
 
@@ -121,10 +122,10 @@ class Restaurant:
   def setup_constants(self):
     self.env.max_budget = 100
     self.env.max_wait_time = 60
-    self.env.max_noise_db = 10
+    self.env.max_noise_db = 50
     self.env.rent = 200
     self.env.worker_wage = 150
-    self.env.sim_loop_delay = 5*60 # in minutes
+    self.env.sim_loop_delay = 10*60 # in minutes
 
   def setup_staffing(self,staff):
     self.env.ledger.staff = [Staff(s['x'],s['y']) for s in staff]
@@ -132,8 +133,8 @@ class Restaurant:
   def setup_kitchen(self, equipment):
     self.kitchen = simpy.FilterStore(self.env, capacity=len(equipment))
     self.kitchen.items = [Appliance(self.env,e["name"],e["attributes"]) for e in equipment]
-    self.food_menu = [m for m in self.food_menu if any(all(req in appliance.capabilities for req in m["requirements"]) for appliance in self.kitchen.items)]
-    self.drink_menu = [d for d in self.drink_menu if any(all(req in appliance.capabilities for req in d["requirements"]) for appliance in self.kitchen.items)]
+    self.food_menu = [m for m in self.food_menu if any(any(req in appliance.capabilities for req in m["requirements"]) for appliance in self.kitchen.items)]
+    self.drink_menu = [d for d in self.drink_menu if any(any(req in appliance.capabilities for req in d["requirements"]) for appliance in self.kitchen.items)]
     self.env.ledger.print("Menu: {}".format(self.food_menu))
     self.env.ledger.set_appliances( [a for a in self.kitchen.items] )
 
@@ -146,7 +147,25 @@ class Restaurant:
     for t in self.env.ledger.tables:
       t.start_simulation()
     self.env.ledger.service_rating = np.mean([t.service_rating for t in self.env.ledger.tables])
-  
+
+  def setup_menu(self):
+    all_capabilities = []
+    for appliance in self.env.ledger.appliances:
+      for c in appliance.capabilities:
+        all_capabilities.append(c)
+    all_capabilities = list(set(all_capabilities))
+    for meal in self.food_menu:
+      new_reqs = []
+      for r in meal["requirements"]:
+        new_reqs.append(r)
+        if r in all_capabilities:
+          meal["requirements"] = new_reqs
+          break
+    print("\n\nFFFFFFOOOOOODDD",self.food_menu)
+
+
+
+
   def setup_neighborhood(self):
     self.max_party_size = 10
     self.neighborhood_size = 10000
@@ -376,5 +395,5 @@ class Restaurant:
     stringbuilder += "Total individual customers served: {}\nAverage price per entree: ${:.2f}\n".format(num_served,revenue/num_served)
     stringbuilder += "Avg Satisfaction Score: {:.2f}\nStd Satisfaction Score: {:.2f}\n".format(np.mean(self.satisfaction_scores), np.std(self.satisfaction_scores))
     stringbuilder += "Final Restaurant Rating: {:.2f}\n".format(self.restaurant_rating)
-    print(stringbuilder)
+    #print(stringbuilder)
     return stringbuilder
