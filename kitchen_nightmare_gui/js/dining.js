@@ -108,21 +108,18 @@ class DiningRoom {
       let x_center = bbox.x + bbox.width / 2;
       let y_center = bbox.y + bbox.height / 2;
       let rot = d3.select(node[i]).attr("rot");
-      console.log("ROT", rot);
       if (rot == undefined) {
         rot = 0;
       } else {
         rot = parseInt(rot);
       }
       rot += 90;
-      console.log("SDF", node[i]);
       d3.select(node[i])
         .attr(
           "transform",
           "rotate(" + rot + "," + x_center + "," + y_center + ")"
         )
         .attr("rot", rot);
-      console.log(d3.select(node[i]).attr("transform").rotate);
     });
     //update table tracking
 
@@ -176,6 +173,25 @@ class DiningRoom {
       });
 
     item_g.call(drag);
+
+    item_g.select("image").on("dblclick", (d, i, node) => {
+      let bbox = node[i].getBBox();
+      let x_center = bbox.x + bbox.width / 2;
+      let y_center = bbox.y + bbox.height / 2;
+      let rot = d3.select(node[i]).attr("rot");
+      if (rot == undefined) {
+        rot = 0;
+      } else {
+        rot = parseInt(rot);
+      }
+      rot += 90;
+      d3.select(node[i])
+        .attr(
+          "transform",
+          "rotate(" + rot + "," + x_center + "," + y_center + ")"
+        )
+        .attr("rot", rot);
+    });
 
     //update table tracking
     this.item_id_counter++;
