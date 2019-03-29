@@ -1,8 +1,8 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_socketio import SocketIO, send, emit
-from restaurant import Restaurant
-from gp import run_gp_flask
+from sknightmare.restaurant import Restaurant
+from sknightmare.gp import run_gp_flask
 from queue import Queue
 import time
 import json

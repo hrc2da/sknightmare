@@ -10,7 +10,7 @@ import queue
 from copy import deepcopy, copy
 
 
-from records import TableStats, PartyStats, PartyStatus, MealStats
+from sknightmare.records import TableStats, PartyStats, PartyStatus, MealStats
 
 class Order:
   def __init__(self, env, name, party, table):
@@ -125,10 +125,14 @@ class Order:
       return self.total_cook_time
 
   def get_completed_meals(self):
-    completed_meals = []
-    for i in range(len(self.qualities)):  
-      completed_meals.append(MealStats(self.meals[i],self.cook_times[i],self.qualities[i]))
+    # completed_meals = []
+    # for i in range(len(self.qualities)):  
+    #   completed_meals.append(MealStats(self.meals[i],self.cook_times[i],self.qualities[i]))
+    completed_meals = [None]*len(self.qualities)
+    for i in range(len(self.qualities)):
+      completed_meals[i] = MealStats(self.meals[i],self.cook_times[i],self.qualities[i])
     return completed_meals
+    #return [MealStats(self.meals[i],self.cook_times[i],self.qualities[i]) for i in range(len(self.qualities))]
 
   def get_completed_drinks(self):
     completed_drinks = []

@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 from skopt import gp_minimize
 from skopt.space import Real, Integer, Categorical
 import time
-from restaurant import Restaurant
+from sknightmare.restaurant import Restaurant
 
 
 

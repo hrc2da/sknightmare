@@ -7,8 +7,8 @@ from random_words import RandomWords
 import arrow # for nicer datetimes
 import math
 import queue
-from objects import Party, Table, Order, Appliance, Staff
-from records import Ledger
+from sknightmare.objects import Party, Table, Order, Appliance, Staff
+from sknightmare.records import Ledger
 
 class Restaurant:
   '''
@@ -82,6 +82,11 @@ class Restaurant:
       self.food_menu = food_menu
     if drink_menu:
       self.drink_menu = drink_menu
+    self.menu = []
+    for f in self.food_menu:
+      self.menu.append(f)
+    for d in self.drink_menu:
+      self.menu.append(d)
     self.ledger = Ledger(self.env, self.food_menu,self.drink_menu,verbose=verbose,save_messages=True, rdq = day_log)
     self.env.ledger = self.ledger
     self.env.day = 0 # just a counter for the number of days
@@ -161,7 +166,24 @@ class Restaurant:
         if r in all_capabilities:
           meal["requirements"] = new_reqs
           break
-    print("\n\nFFFFFFOOOOOODDD",self.food_menu)
+    for drink in self.drink_menu:
+      new_reqs = []
+      for r in drink["requirements"]:
+        new_reqs.append(r)
+        if r in all_capabilities:
+          drink["requirements"] = new_reqs
+          break
+    for item in self.menu:
+      new_reqs = []
+      for r in item["requirements"]:
+        new_reqs.append(r)
+        if r in all_capabilities:
+          item["requirements"] = new_reqs
+          break
+    self.env.ledger.menu = self.menu
+    self.env.ledger.food_menu = self.food_menu
+    self.env.ledger.drink_menu = self.drink_menu
+    #print("\n\nFFFFFFOOOOOODDD",self.food_menu)
 
 
 

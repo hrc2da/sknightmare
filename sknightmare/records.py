@@ -54,20 +54,27 @@ class RestaurantDay:
 
 
     def get_rating(self, level, stats):
+        
         if level == "yelp":
-            tiered_items = {k: v for k, v in stats.items() if self.food_menu_dict[k]['price'] < 0.2*self.env.max_budget}
+            tiered_items = {k: v for k, v in stats.items() if (k in self.food_menu_dict and self.food_menu_dict[k]['price'] < 0.2*self.env.max_budget)
+                                                                or (k in self.drink_menu_dict and self.drink_menu_dict[k]['price'] < 7.0)}
         elif level == "zagat":
             tiered_items = {k: v for k, v in stats.items(
-            ) if self.food_menu_dict[k]['price'] >= 0.2*self.env.max_budget and self.food_menu_dict[k]['price'] <= 0.5*self.env.max_budget}
+            ) if (k in self.food_menu_dict and self.food_menu_dict[k]['price'] >= 0.2*self.env.max_budget and self.food_menu_dict[k]['price'] <= 0.5*self.env.max_budget) 
+                    or (k in self.drink_menu_dict and self.drink_menu_dict[k]['price'] < 7.0)}
         else:
-            tiered_items = {k: v for k, v in stats.items() if self.food_menu_dict[k]['price'] > 0.5*self.env.max_budget}
+            tiered_items = {k: v for k, v in stats.items() if (k in self.food_menu_dict and self.food_menu_dict[k]['price'] > 0.5*self.env.max_budget)
+                                                             or (k in self.drink_menu_dict and self.drink_menu_dict[k]['price'] > 7.0)}
 
         volumes = [tiered_items[ti]["volume"] for ti in tiered_items]
-        qualities = [tiered_items[ti]["quality"] for ti in tiered_items]
+        qualities = [tiered_items[ti]["quality"] for ti in tiered_items if tiered_items[ti]["volume"] > 0]
         if len(volumes) == 0:
             return 0, 0
         total_volume = np.sum(volumes)
-        mean_quality = np.mean(qualities)
+        if len(qualities) > 0:
+            mean_quality = np.mean(qualities)
+        else:
+            mean_quality = 0
         return mean_quality, total_volume
 
         # for each day:
