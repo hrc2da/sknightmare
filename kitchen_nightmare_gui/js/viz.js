@@ -276,10 +276,28 @@ function generateRating(title, rating, icon) {
   return stringBuilder;
 }
 
+function generateMenuReport(food,quality,volume,cook_time) {
+  let stringBuilder = "<p>";
+  stringBuilder += food;
+  stringBuilder += ": <ul>";
+  stringBuilder += "<li>Volume: "+volume.toLocaleString(undefined, {
+    maximumFractionDigits: 2
+  })+"</li>";
+  stringBuilder += "<li>Quality: "+quality.toLocaleString(undefined, {
+    maximumFractionDigits: 2
+  })+"</li>";
+  stringBuilder += "<li>Cook Time:"+cook_time.toLocaleString(undefined, {
+    maximumFractionDigits: 2
+  })+"</li>";
+  return stringBuilder;
+}
+
 function showReport(report) {
+
   $("#report").empty();
   $("#ratings").empty();
   $("#finances").empty();
+  $("#food").empty();
   $("#report").append("<h2>Restaurant Simulation Summary</h2>");
   $("#ratings").append("<h3>Ratings and Reviews</h3>");
   $("#ratings").append(
@@ -314,7 +332,7 @@ function showReport(report) {
     )
   );
   $("#ratings").append(
-    generateRating("Noisiness", Math.round(report["avg_noise"] / 4), "hearing")
+    generateRating("Noisiness", Math.round(report["avg_noise"] / 50), "hearing")
   );
   $("#ratings").append(
     "<p>Average Wait Time: " +
@@ -365,4 +383,16 @@ function showReport(report) {
     }) +
     "</span></p>"
   );
+
+  $("#food").append("<h3>Food</h3>");
+  let menu_stats = report["menu_stats"];
+  for(let food in menu_stats){
+    stats = menu_stats[food]
+    console.log(stats);
+    if(stats["volume"][0] > 0){
+      $("#food").append(
+        generateMenuReport(food, stats["quality"][0], stats["volume"][0], stats["cook_time"][0])
+      );
+    }
+  }
 }

@@ -5,7 +5,7 @@ from enum import IntEnum
 from copy import copy
 
 # Some enum and tuple definitions:
-PartyStatus = IntEnum("PartyStatus", "ENTERED SEATED ORDERED EATING PAID")
+PartyStatus = IntEnum("PartyStatus", "ENTERED SEATED ORDERED EATING PAID LEFT")
 TableStats = namedtuple('TableStats', 'occupancy generated_noise received_noise perceived_crowding')
 PartyStats = namedtuple('PartyState', 'satisfaction order perceived_noise wait_time cook_time eat_time')
 MealStats = namedtuple('MealStats', 'order cook_time quality')
@@ -13,12 +13,16 @@ MealStats = namedtuple('MealStats', 'order cook_time quality')
 
 class RestaurantDay:
 
-    def __init__(self, env, parties, tables, menu):
+    def __init__(self, env, parties, tables, food_menu, drink_menu):
         self.env = env
         self.parties = parties  # [self.parse_party(p) for p in parties]
         self.tables_stats = {t.name: self.parse_table(t) for t in tables}
-        self.menu = menu
-        self.menu_dict = {m['name']: m for m in self.menu}
+        self.food_menu = food_menu
+        self.drink_menu = drink_menu
+        self.food_menu_dict = {m['name']: m for m in self.food_menu}
+        self.drink_menu_dict = {d['name']: d for d in self.drink_menu}
+        self.food_menu_stats = self.get_food_stats()
+        self.drink_menu_stats = self.get_drink_stats()
         self.menu_stats = self.get_menu_stats()
         self.yelp_rating, self.yelp_count = self.get_rating("yelp", self.menu_stats)
         self.zagat_rating, self.zagat_count = self.get_rating("zagat", self.menu_stats)
@@ -28,6 +32,9 @@ class RestaurantDay:
             self.get_equipment_cost(self.env.ledger.appliances) + self.env.rent + \
             len(self.env.ledger.staff)*self.env.worker_wage
 
+
+    def get_unpaid(self):
+        return [p for p in self.parties if p.status != PartyStatus.PAID]
     def get_parties(self, table):
         return [p for p in self.parties if p.status >= PartyStatus.SEATED and p.table.name == table.name]
 
@@ -47,20 +54,27 @@ class RestaurantDay:
 
 
     def get_rating(self, level, stats):
+        
         if level == "yelp":
-            tiered_items = {k: v for k, v in stats.items() if self.menu_dict[k]['price'] < 0.1*self.env.max_budget}
+            tiered_items = {k: v for k, v in stats.items() if (k in self.food_menu_dict and self.food_menu_dict[k]['price'] < 0.2*self.env.max_budget)
+                                                                or (k in self.drink_menu_dict and self.drink_menu_dict[k]['price'] < 7.0)}
         elif level == "zagat":
             tiered_items = {k: v for k, v in stats.items(
-            ) if self.menu_dict[k]['price'] >= 0.1*self.env.max_budget and self.menu_dict[k]['price'] <= 0.5*self.env.max_budget}
+            ) if (k in self.food_menu_dict and self.food_menu_dict[k]['price'] >= 0.2*self.env.max_budget and self.food_menu_dict[k]['price'] <= 0.5*self.env.max_budget) 
+                    or (k in self.drink_menu_dict and self.drink_menu_dict[k]['price'] < 7.0)}
         else:
-            tiered_items = {k: v for k, v in stats.items() if self.menu_dict[k]['price'] > 0.5*self.env.max_budget}
+            tiered_items = {k: v for k, v in stats.items() if (k in self.food_menu_dict and self.food_menu_dict[k]['price'] > 0.5*self.env.max_budget)
+                                                             or (k in self.drink_menu_dict and self.drink_menu_dict[k]['price'] > 7.0)}
 
         volumes = [tiered_items[ti]["volume"] for ti in tiered_items]
-        qualities = [tiered_items[ti]["quality"] for ti in tiered_items]
+        qualities = [tiered_items[ti]["quality"] for ti in tiered_items if tiered_items[ti]["volume"] > 0]
         if len(volumes) == 0:
             return 0, 0
         total_volume = np.sum(volumes)
-        mean_quality = np.mean(qualities)
+        if len(qualities) > 0:
+            mean_quality = np.mean(qualities)
+        else:
+            mean_quality = 0
         return mean_quality, total_volume
 
         # for each day:
@@ -154,12 +168,23 @@ class RestaurantDay:
             return 0, 0
 
     def get_menu_stats(self):
+        food_stats = self.get_food_stats()
+        drink_stats = self.get_drink_stats()
+        menu_stats = {}
+        for f in food_stats:
+            menu_stats[f] = food_stats[f]
+        for d in drink_stats:
+            menu_stats[d] = drink_stats[d]
+        # menu_stats = {**self.get_food_stats(),**self.get_drink_stats()} # not until > python 3.4 :(:(:()))
+        return menu_stats
+
+    def get_food_stats(self):
         meals_served = []
         for p in self.parties:
             if p.status >= PartyStatus.ORDERED:
                 meals_served += p.order.get_completed_meals()
         raw_menu_stats = {item["name"]: [m for m in meals_served if m.order["name"] == item["name"]]
-                          for item in self.menu}
+                          for item in self.food_menu}
         menu_stats = {}
 
         for entry in raw_menu_stats:
@@ -179,6 +204,34 @@ class RestaurantDay:
             }
 
         return menu_stats
+    def get_drink_stats(self):
+        drinks_served = []
+        for p in self.parties:
+            drinks_served += p.order.get_completed_drinks()
+        
+        raw_menu_stats = {item["name"]: [d for d in drinks_served if d.order["name"] == item["name"]]
+                          for item in self.drink_menu}
+        
+        menu_stats = {}
+
+        for entry in raw_menu_stats:
+            raw = raw_menu_stats[entry]
+            quantity = len(raw)
+            if quantity > 0:
+                quality = np.mean([r.quality for r in raw])  # ,np.std([r.quality for r in raw]))
+                # ,np.std([r.cook_time.total_seconds()/60.0 for r in raw]))
+                cook_time = np.mean([r.cook_time.total_seconds()/60.0 for r in raw])
+            else:
+                quality = 0.0
+                cook_time = 0.0
+            menu_stats[entry] = {
+                "volume": quantity,
+                "quality": quality,
+                "cook_time": cook_time
+            }
+
+        return menu_stats
+
 
     def get_avg_satisfaction(self):
         if len(self.parties) > 0:
@@ -221,7 +274,7 @@ class RestaurantDay:
             return np.mean([p.size for p in self.parties])
 
     def get_paid_size(self):
-        paid = [p.size for p in self.parties if p.status >= PartyStatus.PAID]
+        paid = [p.size for p in self.parties if p.status == PartyStatus.PAID]
         if len(paid) < 1:
             return 0
         else:
@@ -234,7 +287,7 @@ class RestaurantDay:
             return np.sum([p.size for p in self.parties])
 
     def get_total_individual_paying_customers(self):
-        paid = [p.size for p in self.parties if p.status >= PartyStatus.PAID]
+        paid = [p.size for p in self.parties if p.status == PartyStatus.PAID]
         if len(paid) < 1:
             return 0
         else:
@@ -244,17 +297,18 @@ class RestaurantDay:
       return len(self.parties)
 
     def get_report(self):
-
+        #print(len(self.get_unpaid()))
         return {
             'entries': len(self.parties),
             'seated': len([p for p in self.parties if p.status >= PartyStatus.SEATED]),
             'served': len([p for p in self.parties if p.status >= PartyStatus.EATING]),
-            'paid': len([p for p in self.parties if p.status >= PartyStatus.PAID]),
+            'paid': len([p for p in self.parties if p.status == PartyStatus.PAID]),
             'entry_party_size':  self.get_entry_size(),
             'paid_party_size':  self.get_paid_size(),
             'wait_time': self.get_avg_wait_time(),
             'cook_time': self.get_avg_total_cook_time(),
             'food_stats': self.get_menu_stats(),
+            'drink_stats': self.get_drink_stats(),
             'expenses': self.expenses,
             'revenue': self.get_total_revenue(),
             'profit': self.get_total_revenue()-self.expenses,
@@ -264,13 +318,14 @@ class RestaurantDay:
 
 
 class Ledger:
-    def __init__(self, env, menu, verbose=True, save_messages=True, rdq=None):
+    def __init__(self, env, food_menu, drink_menu,verbose=True, save_messages=True, rdq=None):
         if not rdq:
             self.day_log = queue.Queue()
         else:
             self.day_log = rdq
         self.env = env
-        self.menu = menu
+        self.food_menu = food_menu
+        self.drink_menu = drink_menu
         self.messages = []
         self.verbose = verbose
         self.save_messages = save_messages
@@ -313,17 +368,24 @@ class Ledger:
     def update_ratings(self, d):
         if d.yelp_count > 0:
             new_yc = self.yelp_count + d.yelp_count
-            self.yelp_rating = (self.yelp_rating*self.yelp_count + d.yelp_rating*d.yelp_count)/new_yc
-            self.yelp_count = new_yc
+        else:
+            new_yc = self.yelp_count + 1 #enforce decay for no volume
+        self.yelp_rating = (self.yelp_rating*self.yelp_count + d.yelp_rating*d.yelp_count)/new_yc
+        self.yelp_count = new_yc
+
         if d.zagat_count > 0:
             new_zc = self.zagat_count + d.zagat_count
-            self.zagat_rating = (self.zagat_rating*self.zagat_count + d.zagat_rating*d.zagat_count)/new_zc
-            self.zagat_count = new_zc
+        else:
+            new_zc = self.zagat_count + 1
+        self.zagat_rating = (self.zagat_rating*self.zagat_count + d.zagat_rating*d.zagat_count)/new_zc
+        self.zagat_count = new_zc
         if d.michelin_count > 0:
             new_mc = self.michelin_count + d.michelin_count
-            self.michelin_rating = (self.michelin_rating*self.michelin_count +
-                                    d.michelin_rating*d.michelin_count)/new_mc
-            self.michelin_count = new_mc
+        else:
+            new_mc = self.michelin_count + 1
+        self.michelin_rating = (self.michelin_rating*self.michelin_count +
+                                d.michelin_rating*d.michelin_count)/new_mc
+        self.michelin_count = new_mc
         if len(d.parties) > 0:
             new_sc = self.satisfaction_count + len(d.parties)
             self.satisfaction = (self.satisfaction*self.satisfaction_count + d.satisfaction*len(d.parties))/new_sc
@@ -344,7 +406,7 @@ class Ledger:
         self.day_log.append(day)
 
     def record_current_day(self):
-        today = RestaurantDay(self.env, self.parties, self.tables, self.menu)
+        today = RestaurantDay(self.env, self.parties, self.tables, self.food_menu, self.drink_menu)
         self.update_ratings(today)
         self.day_log.put(today)
         self.print("********* Day: {} ************".format(self.num_days))
@@ -366,7 +428,9 @@ class Ledger:
 
     def get_menu_stats(self):
         days = list(self.day_log.queue)
-        menu_items = [m["name"] for m in self.menu]
+        menu_items = [m["name"] for m in self.food_menu]
+        for d in self.drink_menu:
+            menu_items.append(d["name"])
         all_stats = [d.get_menu_stats() for d in days]
         menu_stats = {}
         for mi in menu_items:
