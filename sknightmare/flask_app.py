@@ -23,7 +23,7 @@ socketio = SocketIO(app,message_queue=REDIS_URL+"/0",engineio_logger=True)
 class RestaurantDayQueue(Queue):
     def __init__(self,room):
         self.room = room
-        self.socketio = SocketIO(message_queue='redis://')
+        self.socketio = SocketIO(message_queue=REDIS_URL)
         super().__init__()
     def put(self, report, block=True, timeout=None):
         self.socketio.emit('day_report', report.get_report(),room=self.room)
