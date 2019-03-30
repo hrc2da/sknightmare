@@ -70,7 +70,7 @@ celery = make_celery(app)
 
 @celery.task()
 def simulate(restaurant,sid):
-    simsocket = SocketIO(message_queue='redis://')
+    simsocket = SocketIO(message_queue=REDIS_URL)
     layout = json.loads(restaurant)
     print("making rdq here")
     rdq = RestaurantDayQueue(sid)
