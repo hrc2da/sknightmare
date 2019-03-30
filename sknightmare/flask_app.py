@@ -17,7 +17,7 @@ print(REDIS_URL)
 
 app = Flask(__name__)
 CORS(app)
-socketio = SocketIO(app,message_queue=REDIS_URL+"/0",engineio_logger=True)
+socketio = SocketIO(app,message_queue=REDIS_URL,engineio_logger=True)
 
 
 class RestaurantDayQueue(Queue):
