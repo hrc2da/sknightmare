@@ -14,7 +14,7 @@ eventlet.monkey_patch()
 
 REDIS_URL = (os.environ.get('REDIS_URL','redis://localhost:6379'))
 print(REDIS_URL)
-REDIS_URL = "redis://"
+
 
 app = Flask(__name__)
 CORS(app)
