@@ -40,7 +40,7 @@ def make_celery(app):
         'flask_app',
         backend=app.config['CELERY_RESULT_BACKEND'],
         broker=app.config['CELERY_BROKER_URL'],
-        redis_max_connections=5,
+        redis_max_connections=2,
         broker_pool_limit=0
     )
     celery.conf.update(app.config)
