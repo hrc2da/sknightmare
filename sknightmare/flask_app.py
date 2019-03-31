@@ -17,6 +17,7 @@ print(REDIS_URL)
 
 
 app = Flask(__name__)
+application = app
 CORS(app)
 socketio = SocketIO(app,message_queue=REDIS_URL,engineio_logger=True)
 
