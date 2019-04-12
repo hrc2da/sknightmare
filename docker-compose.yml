@@ -1,0 +1,29 @@
+version: '3'
+services:
+    web:
+        restart: always
+        build: ./web
+        expose:
+            - "8000"
+        volumes:
+            - ./web:/vol
+        command: /usr/local/bin/gunicorn --worker-class eventlet -w 2 sknightmare.flask_app:app
+
+    redis:
+        restart: always
+        image: redis:latest
+        volumes:
+            - ./redis_data:/data
+        command: redis-server
+        expose:
+            - "6379"
+
+    nginx:
+        restart: always
+        build: ./nginx
+        ports:
+            - "80:80"
+        volumes: 
+            - ./sknightmare/static:/www/static
+
+

@@ -108,7 +108,7 @@ def bayesopt():
 
 @socketio.on('connect')
 def handle_connect():
-    sess = str(time.time())
+    sess = str(request.sid)
     emit('session_id', sess)
 
 
