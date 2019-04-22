@@ -7,7 +7,9 @@ services:
             - "8000"
         volumes:
             - ./web:/vol
-        command: /usr/local/bin/gunicorn --worker-class eventlet -w 2 sknightmare.flask_app:app
+        environment:
+            - REDIS_URL=redis://redis:6379
+        command: /bin/bash -c "/usr/local/bin/gunicorn --worker-class eventlet -w 2 -b 0.0.0.0:8000 sknightmare.flask_app:app & celery -A sknightmare.flask_app.celery worker --concurrency=2 --loglevel=info"
 
     redis:
         restart: always

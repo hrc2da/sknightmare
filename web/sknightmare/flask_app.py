@@ -114,6 +114,7 @@ def handle_connect():
 
 @socketio.on('simulate')
 def socket_simulate(restaurant):
+    print("got the message. running restaurant")
     r = simulate.delay(restaurant,request.sid)
     # report = r.wait()
     # emit("sim_report", report)

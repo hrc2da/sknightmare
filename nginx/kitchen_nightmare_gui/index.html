@@ -70,7 +70,7 @@
     <script>
         let dining_room = setupRestaurant(940, 494);
         let viz = setupViz('#reports', 300, 600);
-        let socket = io('http://localhost:80/api/',{ transports: ['websocket', 'polling'] });
+        let socket = io('http://localhost/api',{ transports: ['websocket', 'polling'] });
         //let socket = io();
         console.log("connecting");
         socket.on('connect', function () {
