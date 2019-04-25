@@ -98,7 +98,8 @@ class DiningRoom {
           mouseY < y_min ||
           mouseY > y_max
         ) {
-          d3.select(this).remove();
+          console.log(this.parentNode);
+          d3.select(this.parentNode).remove();
         }
       });
 
@@ -258,7 +259,7 @@ class DiningRoom {
           mouseY < y_min ||
           mouseY > y_max
         ) {
-          d3.select(this).remove();
+          d3.select(this.parentNode).remove();
         }
       });
     waiter_g.select("image").call(drag);
