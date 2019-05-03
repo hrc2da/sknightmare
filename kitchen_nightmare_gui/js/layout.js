@@ -379,7 +379,7 @@ function setupRestaurant(w, h) {
           ) {
             let new_table_group = d3.select("#candidate_table_");
             new_table_group.attrs({
-              id: "table_" + dining_room.num_tables
+              id: "table_" + dining_room.table_id_counter
             });
             dining_room.add_table({
               table_svg_attrs: new_svg_attrs,
