@@ -102,6 +102,7 @@ class Restaurant:
     # sim mechanics note that due to dependencies, the order matters here (e.g. seating needs staff to be setup to calculate table service ratings)
     self.setup_neighborhood()
     self.setup_staffing(staff)
+    equipment = self.add_aux_equipment(equipment,tables)
     self.setup_kitchen(equipment)
     self.setup_menu() #notice that here we are refactoring the menu to weed out lesser options in requirements (if we have a brick oven, wood-fired pizza should wait for it)
     self.setup_seating(tables)
@@ -134,6 +135,16 @@ class Restaurant:
 
   def setup_staffing(self,staff):
     self.env.ledger.staff = [Staff(s['x'],s['y']) for s in staff]
+
+  def add_aux_equipment(self,equipment,tables):
+    for t in tables:
+      if "appliances" in t["attributes"]:
+        appliances = t["attributes"]["appliances"]
+        for a in appliances:
+          a["attributes"]["x"] = t["attributes"]["x"]
+          a["attributes"]["y"] = t["attributes"]["y"]
+          equipment.append(a)
+    return equipment
 
   def setup_kitchen(self, equipment):
     self.kitchen = simpy.FilterStore(self.env, capacity=len(equipment))
