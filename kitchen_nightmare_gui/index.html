@@ -70,7 +70,8 @@
     <script>
         let dining_room = setupRestaurant(940, 494);
         let viz = setupViz('#reports', 300, 600);
-        let socket = io('https://sknightmare.nikhildhawan.me/',{ transports: ['websocket', 'polling'] });
+        let url = 'http://localhost:5000'
+        let socket = io(url,{ transports: ['websocket', 'polling'] });
         console.log("connecting");
         socket.on('connect', function () {
             console.log("connected")
@@ -136,7 +137,7 @@
                 $("#report").append(
                     '<span class="loading">Agent is thinking...</span><img id="loading" src="loading.gif" />'
                 );
-                $.get("https://sknightmare.nikhildhawan.me/bayesopt", (designs) => {
+                $.get(url+"/bayesopt", (designs) => {
                     restaurants = JSON.parse(designs)['restaurants'];
                     let last_restaurant = get_valid_design(restaurants);
                     if (last_restaurant == null) {

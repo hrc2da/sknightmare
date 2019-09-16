@@ -114,7 +114,9 @@ def handle_connect():
 
 @socketio.on('simulate')
 def socket_simulate(restaurant):
-    r = simulate.delay(restaurant,request.sid)
+    #r = simulate.delay(restaurant,request.sid)
+    # not sure why this works instead of having the delay...
+    r = simulate(restaurant,request.sid)
     # report = r.wait()
     # emit("sim_report", report)
 
