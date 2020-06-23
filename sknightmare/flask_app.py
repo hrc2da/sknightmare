@@ -96,7 +96,7 @@ def opt():
 
 @app.route('/', methods=['GET'])
 def hello():
-    return "Welcome to the SKNightmare"
+    return "Welcome to the SKNightmare!"
 
 
 @app.route('/bayesopt', methods=['GET'])
@@ -105,6 +105,13 @@ def bayesopt():
     res = r.wait()
     return res
 
+@app.route('/simulate', methods=['POST'])
+def simulate_post():
+    layout = request.json
+    r = Restaurant("Sophie's Kitchen", layout["equipment"], layout["tables"], layout["staff"], verbose=False)
+    r.simulate(days=int(layout["days"]))
+    report = r.ledger.generate_final_report()
+    return jsonify(report)
 
 @socketio.on('connect')
 def handle_connect():

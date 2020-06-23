@@ -1,0 +1,46 @@
+["simulate",
+"{"tables":[{"x":0.24772036474164133,
+            "y":0.780798149219202,
+            "size":30,"seats":4,
+            "type":"image",
+            "cost":250,
+            "daily_upkeep":1,
+            "name":"Table 0",
+            "attributes":{"type":"image",
+                            "seats":4,
+                            "radius":30,
+                            "cost":250,
+                            "daily_upkeep":1,
+                            "appliances":[],
+                            "noisiness":1,
+                            "x":0.24772036474164133,
+                            "y":0.780798149219202}}],
+    "equipment":[{"name":"Brick Pizza Oven",
+                "attributes":{"category":"cooking",
+                                "capabilities":{
+                                    "pizza":{
+                                        "quality_mean":0.7,
+                                        "quality_std":0.1,
+                                        "cook_time_mult":0.8,
+                                        "cook_time_std":1},
+                                        "brick_oven":{
+                                            "quality_mean":0.7,
+                                            "quality_std":0.1,
+                                            "cook_time_mult":0.8,
+                                            "cook_time_std":1}},
+                                            "path":"svgs/kiln.svg",
+                                            "difficulty_rating":0.8,
+                                            "cost":4000,
+                                            "daily_upkeep":10,
+                                            "reliability":0.9,
+                                            "noisiness":0.2,
+                                            "atmosphere":0.6,
+                                            "x":0.71580547112462,
+                                            "y":0.24291497975708506,
+                                            "radius":0}}],
+    "staff":[{"x":0.6717325227963525,"y":0.7692307692307694}],"days":"3"}"]
+
+
+    ["day_report",{"entries":0,"seated":0,"served":0,"paid":0,"entry_party_size":0,"paid_party_size":0,"wait_time":[0,0],"cook_time":[0,0],"food_stats":{"Pizza Slice":{"volume":0,"quality":0.0,"cook_time":0.0},"Personal Pan Pizza":{"volume":0,"quality":0.0,"cook_time":0.0},"Wood-Fired Pizza":{"volume":0,"quality":0.0,"cook_time":0.0}},"drink_stats":{},"expenses":361,"revenue":0,"profit":-361,"noise":19.66870153959753,"satisfaction":0}]
+
+    ["sim_report",{"revenue":1720.4210765290152,"cook_times":[1.5721850613154962,1.2445412426335187],"wait_times":[18.69730218853741,13.22266131192558],"satisfaction":0.5089064184866106,"menu_stats":{"Pizza Slice":{"volume":[11.0,7.874007874011811],"quality":[0.4787015692599373,0.33895202159831167],"cook_time":[2.2555555555555555,1.6046998873294227]},"Personal Pan Pizza":{"volume":[8.333333333333334,6.236095644623235],"quality":[0.47130999543733604,0.33493115196225853],"cook_time":[4.966666666666667,3.5122009560324927]},"Wood-Fired Pizza":{"volume":[7.0,5.354126134736337],"quality":[0.4119938451779907,0.2916349501351359],"cook_time":[7.746794871794871,5.477812592824245]}},"yelp_rating":0.7095878093547744,"zagat_rating":0.25,"michelin_rating":0.6041439430254493,"total_overhead":1921.0,"upfront_costs":4250.0,"profit":-4450.578923470985,"num_days":3,"avg_check":21.77748198137994,"avg_normalized_check":0.2177748198137994,"total_customers":79.0,"daily_customers":26.333333333333332,"avg_party_size":2.189516129032258,"avg_noise":19.668701539597528,"num_parties":248.0,"service_rating":0.7000665786728577}]
