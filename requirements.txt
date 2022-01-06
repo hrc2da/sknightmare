@@ -1,7 +1,7 @@
 amqp==2.4.2
 arrow==0.13.1
 billiard==3.6.0.0
-celery==4.3.0rc3
+celery==5.2.2
 Click==7.0
 cycler==0.10.0
 dnspython==1.16.0
