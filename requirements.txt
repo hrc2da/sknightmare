@@ -1,5 +1,5 @@
 amqp==2.4.2
-arrow==0.13.1
+arrow==0.15.1
 billiard==3.6.0.0
 celery==4.3.0rc3
 Click==7.0
